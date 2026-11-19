@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>India Industry Dashboard · indiaemerges</title>
+<meta name="description" content="India's industrial production (IIP) and factory sector (Annual Survey of Industries) from official MoSPI data, by industry and by state.">
+<link rel="canonical" href="https://indiaemerges.com/industry/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/ie.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="home" href="/">← india<span>emerges</span></a>
+    <h1>India Industry Dashboard</h1>
+    <p class="sub">What India's mines, factories and power plants produce each month, and what its factory sector earns, employs and pays each year, by industry and by state.</p>
+    <p class="asof" id="asof"></p>
+    <nav class="tabs" id="tabs" aria-label="Views"></nav>
+  </header>
+  <div class="bar" id="bar"></div>
+  <main id="main"><p class="empty">Loading data…</p></main>
+  <footer class="sitefoot">An <a href="/">indiaemerges.com</a> dashboard · Data: MoSPI Index of Industrial Production and Annual Survey of Industries, via the eSankhyiki API</footer>
+</div>
+<div id="tip" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="/assets/ie.js"></script>
+<script src="/assets/india-geo.js"></script>
+<script>
+(async function(){
+"use strict";
+const {h,esc,fmt,PAL}=IE;
+const main=document.getElementById('main'),bar=document.getElementById('bar');
+let I,A;
+try{[I,A]=await Promise.all(['data/iip.json','data/asi.json'].map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.json();})));}
+catch(e){main.innerHTML='<p class="empty">The data files did not load. Reload the page to try again.</p>';return;}
+
+/* ================= shared naming ================= */
+const SHORT=[[/^manufacture of /i,''],[/basic pharmaceutical products.*|pharmaceuticals, medicinal.*/i,'Pharmaceuticals'],[/^wood and products of wood.*/i,'Wood products'],[/^coke and refined petroleum.*/i,'Coke and refined petroleum'],
+ [/^computer, electronic and optical.*/i,'Computers and electronics'],[/^fabricated metal products.*/i,'Fabricated metal products'],[/^motor vehicles.*/i,'Motor vehicles and parts'],[/^machinery and equipment n\.?e\.?c\.?/i,'Machinery n.e.c.'],
+ [/^other non-metallic mineral products/i,'Non-metallic mineral products'],[/^printing and reproduction.*/i,'Printing and recorded media'],[/^metallic minerals.*/i,'Metallic minerals'],[/^non-metallic minerals.*/i,'Non-metallic minerals'],
+ [/^infrastructure\/ ?construction goods/i,'Infrastructure and construction goods'],[/^chemicals and chemical products/i,'Chemicals'],[/^rubber and plastics products/i,'Rubber and plastics'],[/^leather and related products/i,'Leather products'],
+ [/^paper and paper products/i,'Paper products'],[/^other transport equipment/i,'Other transport equipment'],[/^crop and animal production.*/i,'Agricultural services'],[/^repair and installation.*/i,'Repair and installation of machinery'],
+ [/^waste collection.*/i,'Waste collection and recycling'],[/^publishing activities/i,'Publishing'],[/^water supply, sewerage.*/i,'Water supply and waste'],[/^electricity & gas supply/i,'Electricity and gas'],[/^mining & quarrying/i,'Mining']];
+function short(n){let s=n.trim();for(const [re,rep] of SHORT){if(re.test(s))s=s.replace(re,rep);}s=s.replace(/ & /g,' and ').replace(/,? ?n\.e\.c\.?$/i,' n.e.c.');return s.charAt(0).toUpperCase()+s.slice(1).toLowerCase();}
+
+/* ================= IIP model ================= */
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],MONL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const ymLab=ym=>MON[+ym.slice(5)-1]+' '+ym.slice(0,4),ymLong=ym=>MONL[+ym.slice(5)-1]+' '+ym.slice(0,4);
+const BASES=[{id:'2022-23',name:'2022-23 base (current)'},{id:'2011-12',name:'2011-12 base (to March 2026)'}];
+function concept(s){if(s.type==='General')return 'gen';const top={'Mining':'min','Mining & Quarrying':'min','Manufacturing':'mfg','Electricity':'ele','Electricity & Gas Supply':'ele','Water Supply, Sewerage & Waste Management':'wat'}[s.cat];
+  if(s.type==='Sectoral')return s.sub?top+':'+short(s.sub).toLowerCase():top;return 'use:'+short(s.cat).toLowerCase();}
+const CON={};I.series.forEach(s=>{const c=concept(s);s.c=c;const nm=s.type==='General'?'General index':s.type==='Sectoral'?(s.sub?short(s.sub):short(s.cat)):short(s.cat);
+  if(!CON[c])CON[c]={id:c,name:nm,group:s.type==='General'?'All industry':s.type==='Use-based category'?'By use':s.sub?(s.cat==='Manufacturing'?'Manufacturing industries':short(s.cat)):'Sectors',by:{}};CON[c].by[s.base]=s.id;});
+const GROUPS=['All industry','Sectors','By use','Manufacturing industries','Mining','Electricity and gas','Water supply and waste'];
+function monthsOf(base){const set=new Set();Object.values(CON).forEach(c=>{const id=c.by[base];if(id)(I.monthly[id]||[]).forEach(r=>set.add(r[0]));});return [...set].sort();}
+function fysOf(base){const set=new Set();Object.values(CON).forEach(c=>{const id=c.by[base];if(id)(I.annual[id]||[]).forEach(r=>set.add(r[0]));});return [...set].sort();}
+const MONTHS={},FYS={};BASES.forEach(b=>{MONTHS[b.id]=monthsOf(b.id);FYS[b.id]=fysOf(b.id);});
+function iipVals(cid,base,freq,measure,labels){const id=CON[cid]&&CON[cid].by[base];const rows=id?(freq==='m'?I.monthly[id]:I.annual[id])||[]:[];const map={};rows.forEach(r=>map[r[0]]=measure==='idx'?r[1]:r[2]);return labels.map(l=>map[l]==null?null:map[l]);}
+const CUR='2022-23',OLD='2011-12',LATEST=I.meta.latest_month[CUR];
+
+/* ================= ASI model ================= */
+const AY=A.years,NAY=AY.length,IND={};A.indicators.forEach(d=>IND[d.name]=d);
+const NIC={};A.nic.forEach(n=>NIC[n.code]=Object.assign(n,{short:short(n.name)}));
+const DEF=y=>A.gdp_deflator[y];
+// convert published units to dashboard units: ₹ lakhs -> ₹ crore; ₹ thousand -> ₹ crore; thousand mandays -> mandays
+const conv=u=>u==='₹ lakhs'?0.01:u==='₹ Thousand'?0.0001:u==='Thousand'?1000:1;
+const isRs=n=>/₹/.test(IND[n]?IND[n].unit:'');
+const ASI_GROUPS=[
+ ['Size',['Number of Factories','Factories in Operation']],
+ ['Output and value added',['Total Output','Total Inputs','Materials Consumed','Gross Value Added','Net Value Added','Depreciation','Net Income','Net Profit']],
+ ['Capital and investment',['Fixed Capital','Working Capital','Invested Capital','Gross Value of Plant & Machinery','Gross Fixed Capital Formation','Gross Capital Formation','Gross Value of Addition to Fixed Capital','Outstanding Loan','Interest Paid']],
+ ['Jobs',['Total Number of Persons Engaged','Total Number of Workers','No. of Directly Employed  Workers','No. of Directly Employed Male Workers','No. of Directly Employed Female Workers','No. of Workers employed Through Contractors','No. of Employees Other Than Workers','Total Mandays Employed']],
+ ['Pay',["Wages and Salaries Including Employer's Contribution",'Wages and Salaries','Wages and Salary of Workers']],
+ ['Energy',['Total Value of Fuel Consumed']]];
+const DERIVED={
+ 'd:fem':{name:'Women as a share of directly employed workers',num:'No. of Directly Employed Female Workers',den:'No. of Directly Employed  Workers'},
+ 'd:con':{name:'Contract workers as a share of all workers',num:'No. of Workers employed Through Contractors',den:'Total Number of Workers'},
+ 'd:wage':{name:'Wages and salaries as a share of GVA',num:'Wages and Salaries',den:'Gross Value Added'},
+ 'd:prof':{name:'Net profit as a share of GVA',num:'Net Profit',den:'Gross Value Added'},
+ 'd:util':{name:'Factories in operation as a share of all factories',num:'Factories in Operation',den:'Number of Factories'}};
+const ANAME=k=>DERIVED[k]?DERIVED[k].name:(k==='No. of Directly Employed  Workers'?'Directly employed workers':k.replace(/^No\. of /,'').replace(/  +/g,' '));
+const ASI_OPTS=ASI_GROUPS.map(([g,l])=>({group:g,items:l.filter(n=>IND[n]).map(n=>[n,ANAME(n)])})).concat([{group:'Ratios',items:Object.keys(DERIVED).map(k=>[k,DERIVED[k].name])}]);
+const AMEAS=[['raw','As published'],['real','Constant 2011-12 prices'],['share','Share of all-India total'],['perfac','Per factory in operation'],['perpe','Per person engaged'],['g','Growth on previous year'],['gk','Real growth on previous year']];
+function measOk(ind,m,ctx){if(DERIVED[ind])return m==='raw';if((m==='real'||m==='gk')&&!isRs(ind))return false;if(m==='share'&&ctx==='trend-allindia')return false;if(m==='perfac'&&ind.startsWith('Number of Factories'))return false;if(m==='perfac'&&ind==='Factories in Operation')return false;if(m==='perpe'&&ind==='Total Number of Persons Engaged')return false;return true;}
+// get a record (object of indicator arrays) for: {kind:'nic',code} | {kind:'state',name} | {kind:'all'}
+function rec(t){if(t.kind==='nic')return A.india_nic[t.code]||{};if(t.kind==='snic')return ((A.state_nic[t.state]||{})[t.code])||{};return A.states[t.kind==='all'?'All India':t.name]||{};}
+function rawv(r,n,yi){const a=r[n];if(!a||a[yi]==null)return null;return a[yi]*conv(IND[n].unit);}
+function aval(t,ind,yi,m){
+  const r=rec(t);
+  if(DERIVED[ind]){const d=DERIVED[ind],a=rawv(r,d.num,yi),b=rawv(r,d.den,yi);return a!=null&&b?a/b*100:null;}
+  const v=rawv(r,ind,yi);if(v==null)return null;
+  switch(m){
+    case 'raw':return v;
+    case 'real':return DEF(AY[yi])?v/DEF(AY[yi])*100:null;
+    case 'share':{const tot=t.kind==='nic'?rawv(A.states['All India'],ind,yi):rawv(A.states['All India'],ind,yi);return tot?v/tot*100:null;}
+    case 'perfac':{const f=rawv(r,'Factories in Operation',yi);return f?v/f:null;}
+    case 'perpe':{const p=rawv(r,'Total Number of Persons Engaged',yi);return p?(isRs(ind)?v*1e7/p:v/p):null;}
+    case 'g':{const p=rawv(r,ind,yi-1);return p>0?(v/p-1)*100:null;}
+    case 'gk':{const p=rawv(r,ind,yi-1);if(!(p>0)||!DEF(AY[yi])||!DEF(AY[yi-1]))return null;return ((v/DEF(AY[yi]))/(p/DEF(AY[yi-1]))-1)*100;}
+  }return null;}
+function akind(ind,m){if(DERIVED[ind]||m==='share'||m==='g'||m==='gk')return 'pct';if(m==='perpe')return isRs(ind)?'rs':'x';if(m==='perfac')return isRs(ind)?'cr':'x';return isRs(ind)?'cr':'num';}
+function aunit(ind,m){if(DERIVED[ind])return '% · '+DERIVED[ind].name;const rs=isRs(ind);
+  return {raw:rs?'₹ crore, current prices':(ind==='Total Mandays Employed'?'person-days':'number'),real:'₹ crore at 2011-12 prices (GDP deflator)',share:'% of all-India total',perfac:rs?'₹ crore per factory in operation':'per factory in operation',perpe:rs?'₹ per person engaged, current prices':'per person engaged',g:'% change on previous year',gk:'% change on previous year, after inflation'}[m];}
+const STNAME=s=>s.replace('Chattisgarh','Chhattisgarh').replace('Havelli','Haveli').replace(/ & /g,' and ');
+const GEO2ASI={'Andaman and Nicobar Islands':'Andaman & Nicobar Islands','Chhattisgarh':'Chattisgarh','Jammu and Kashmir':'Jammu & Kashmir','NCT Delhi':'Delhi','Dadra and Nagar Haveli and Daman and Diu':'Dadra & Nagar Havelli and Daman & Diu'};
+const ASTATES=Object.keys(A.states).filter(s=>s!=='All India').sort((a,b)=>STNAME(a).localeCompare(STNAME(b)));
+const NICS=A.nic.map(n=>n.code);
+
+/* ================= state ================= */
+const DEF0={p:{base:CUR,freq:'m',meas:'g',cons:['gen','mfg','min','ele'],a:null,b:null},
+  f:{ind:'Gross Value Added',meas:'raw',sel:['29','24','20','26','21'],a:0,b:NAY-1},
+  s:{ind:'Gross Value Added',meas:'share',yi:NAY-1,state:'Maharashtra',mix:'Gross Value Added'}};
+const SAVED=IE.store.get('ie-ind1',{});
+const st={p:Object.assign({},DEF0.p,SAVED.p||{}),f:Object.assign({},DEF0.f,SAVED.f||{}),s:Object.assign({},DEF0.s,SAVED.s||{})};
+if(!BASES.some(b=>b.id===st.p.base))st.p.base=CUR;st.p.cons=st.p.cons.filter(c=>CON[c]);if(!st.p.cons.length)st.p.cons=['gen'];
+if(!(IND[st.f.ind]||DERIVED[st.f.ind]))st.f.ind='Gross Value Added';if(!(IND[st.s.ind]||DERIVED[st.s.ind]))st.s.ind='Gross Value Added';
+st.f.sel=st.f.sel.filter(c=>c==='all'||NIC[c]);if(!st.f.sel.length)st.f.sel=['all'];st.f.a=Math.max(0,Math.min(NAY-2,st.f.a));st.f.b=Math.max(st.f.a+1,Math.min(NAY-1,st.f.b));
+st.s.yi=Math.max(1,Math.min(NAY-1,st.s.yi));if(!A.states[st.s.state])st.s.state='Maharashtra';
+const save=()=>IE.store.set('ie-ind1',{p:st.p,f:st.f,s:st.s});
+
+document.getElementById('asof').textContent='Production index to '+ymLong(LATEST)+' · Factory survey to '+A.meta.latest_year+' · Updated '+I.meta.fetched.slice(0,10);
+
+const VIEWS=[['overview','Overview'],['production','Monthly production'],['factories','Factory sector'],['states','States'],['methods','Sources and methods']];
+const R=IE.router(VIEWS,'overview',render);
+function render(){R.tabs(document.getElementById('tabs'));bar.textContent='';IE.tip.hide();({overview:barNone,production:barProd,factories:barFac,states:barStates,methods:barNone})[R.get()]();draw();}
+function draw(){main.textContent='';({overview:vOverview,production:vProd,factories:vFac,states:vStates,methods:vMethods})[R.get()]();}
+function barNone(){}
+const later=[];const queue=f=>later.push(f);const flush=()=>{while(later.length)later.shift()();};
+function card(title,full){const c=h('div',{class:'card'+(full?' full':'')});c.appendChild(h('h3',{text:title}));return c;}
+const foot=(c,t)=>c.appendChild(h('p',{class:'note',text:t}));
+
+/* ================= Overview ================= */
+function vOverview(){
+  const M=MONTHS[CUR],li=M.indexOf(LATEST),mon=ymLong(LATEST);
+  main.appendChild(h('h2',{text:'Industry at a glance, '+mon}));
+  const tiles=h('div',{class:'tiles'});main.appendChild(tiles);
+  [['gen','Industrial production'],['mfg','Manufacturing'],['min','Mining'],['ele','Electricity and gas'],['use:capital goods','Capital goods'],['use:consumer durables','Consumer durables']].forEach(([c,n])=>{
+    const v=iipVals(c,CUR,'m','g',M);const t=h('div',{class:'tile'});t.appendChild(h('div',{class:'k',text:n+', growth on a year earlier'}));t.appendChild(h('div',{class:'v',text:fmt(v[li],'pct')}));
+    t.appendChild(h('div',{class:'u',text:mon}));t.appendChild(h('div',{html:IE.spark(v.slice(Math.max(0,li-23),li+1))}));tiles.appendChild(t);});
+  const ly=NAY-1,ALL={kind:'all'};
+  [['Factories in Operation','raw','Factories in operation'],['Total Number of Persons Engaged','raw','People working in factories'],['Gross Value Added','raw','Factory sector GVA'],['Gross Value Added','perpe','GVA per person engaged']].forEach(([ind,m,n])=>{
+    const v=aval(ALL,ind,ly,m),p=aval(ALL,ind,ly-1,m),k=akind(ind,m);const t=h('div',{class:'tile'});t.appendChild(h('div',{class:'k',text:n}));t.appendChild(h('div',{class:'v',text:fmt(v,k)}));
+    t.appendChild(h('div',{class:'u',text:A.meta.latest_year+(m==='raw'&&isRs(ind)?', current prices':'')}));t.appendChild(h('div',{html:IE.spark(d3.range(NAY).map(i=>aval(ALL,ind,i,m)))}));
+    if(v!=null&&p)t.appendChild(h('div',{class:'b',text:(v>=p?'+':'−')+Math.abs((v/p-1)*100).toFixed(1)+'% on '+AY[ly-1]}));tiles.appendChild(t);});
+  main.appendChild(h('p',{class:'note',text:'Monthly figures are from the Index of Industrial Production on its 2022-23 base. The latest month is a quick estimate that MoSPI revises in later releases. Factory figures are from the Annual Survey of Industries, which covers registered factories.'}));
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  { const c=card('Industrial production growth: 2022-23 and 2011-12 bases (% change on a year earlier)',true),b=h('div');
+    const L=[...new Set(MONTHS[OLD].concat(MONTHS[CUR]))].sort();const S=[{name:'2022-23 base',short:'2022-23 base',color:PAL[0],pts:iipVals('gen',CUR,'m','g',L).map((v,i)=>[i,v])},{name:'2011-12 base',short:'2011-12 base',color:PAL[1],pts:iipVals('gen',OLD,'m','g',L).map((v,i)=>[i,v])}];
+    c.appendChild(IE.legend(S,1));c.appendChild(b);g.appendChild(c);
+    queue(()=>IE.lineChart(b,{labels:L.map(ymLab),series:S,kind:'pct',unit:'% change on the same month a year earlier',align:i=>+L[i].slice(0,4)*12+(+L[i].slice(5)-1),minStep:12,tickLabel:i=>L[i].slice(0,4),tipTitle:i=>ymLong(L[i]),label:'IIP growth'}));
+    foot(c,'MoSPI moved the index to a 2022-23 base in 2026; the two series overlap from April 2023 to March 2026. Growth rates are as published for each base. The 2020-21 collapse and 2021-22 rebound reflect the pandemic; MoSPI did not publish a growth rate for April 2021 on the old base.'); }
+  { const c=card('Growth by use of goods, '+mon+' (% change on a year earlier)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    const ids=Object.values(CON).filter(x=>x.group==='By use'&&x.by[CUR]);
+    queue(()=>IE.rankBars(b,{items:ids.map(x=>({name:x.name,v:iipVals(x.id,CUR,'m','g',M)[li]})),kind:'pct',vname:mon,unit:'% change on a year earlier, 2022-23 base',lw:Math.min(260,b.clientWidth*.5)}));
+    foot(c,'Use-based groups classify the same output by who uses it: capital goods for investment, consumer goods for households, and so on.'); }
+  { const c=card('Growth by manufacturing industry, '+mon+' (% change on a year earlier)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    const ids=Object.values(CON).filter(x=>x.group==='Manufacturing industries'&&x.by[CUR]);
+    queue(()=>IE.rankBars(b,{items:ids.map(x=>({name:x.name,v:iipVals(x.id,CUR,'m','g',M)[li],id:x.id})),kind:'pct',vname:mon,unit:'% change on a year earlier, 2022-23 base',rh:25,lw:Math.min(260,b.clientWidth*.5),onClick:d=>{st.p.cons=['mfg',d.id];st.p.base=CUR;st.p.meas='g';save();R.go('production');}}));
+    foot(c,'Select an industry to follow it month by month.'); }
+  { const c=card('Which industries create factory value added, '+AY[ly]+' (% of factory sector GVA)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    queue(()=>IE.rankBars(b,{items:NICS.map(k=>({name:NIC[k].short,full:NIC[k].name,v:aval({kind:'nic',code:k},'Gross Value Added',ly,'share'),code:k})).filter(d=>d.v!=null).sort((p,q)=>q.v-p.v).slice(0,12),kind:'pct',vname:AY[ly],unit:'% of all-India factory GVA',rh:25,lw:Math.min(260,b.clientWidth*.5),onClick:d=>{st.f.sel=['all',d.code];st.f.ind='Gross Value Added';st.f.meas='raw';save();R.go('factories');}}));
+    foot(c,'Top 12 of '+NICS.length+' industry groups (NIC 2008, two-digit). Select one to see its history.'); }
+  { const c=card('Where factory value added is created, '+AY[ly]+' (% of all-India factory GVA)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    queue(()=>IE.rankBars(b,{items:ASTATES.map(s=>({name:STNAME(s),key:s,v:aval({kind:'state',name:s},'Gross Value Added',ly,'share')})).filter(d=>d.v!=null).sort((p,q)=>q.v-p.v).slice(0,12),kind:'pct',vname:AY[ly],unit:'% of all-India factory GVA',rh:25,onClick:d=>{st.s.state=d.key;st.s.ind='Gross Value Added';st.s.meas='share';save();R.go('states');}}));
+    foot(c,'Top 12 states and union territories. Select one to open its profile.'); }
+  flush();
+}
+
+/* ================= Monthly production ================= */
+function pLabels(){return st.p.freq==='m'?MONTHS[st.p.base]:FYS[st.p.base];}
+function barProd(){
+  bar.appendChild(IE.ctl('Base year',IE.sel(BASES.map(b=>[b.id,b.name]),st.p.base,v=>{st.p.base=v;st.p.a=st.p.b=null;save();render();})));
+  bar.appendChild(IE.ctl('Frequency',IE.sel([['m','Monthly'],['a','Financial year']],st.p.freq,v=>{st.p.freq=v;st.p.a=st.p.b=null;save();render();})));
+  bar.appendChild(IE.ctl('Measure',IE.sel([['g','Growth on a year earlier'],['idx','Index level']],st.p.meas,v=>{st.p.meas=v;save();draw();})));
+  const L=pLabels();if(st.p.a==null||st.p.b==null||st.p.b>=L.length){st.p.b=L.length-1;st.p.a=st.p.freq==='m'?Math.max(0,L.length-36):0;}
+  bar.appendChild(IE.rangeCtl(L.map(st.p.freq==='m'?ymLab:x=>x),st.p.a,st.p.b,(a,b)=>{st.p.a=a;st.p.b=b;save();draw();}));
+}
+const pcolor={};function pCol(c){const used=new Set(st.p.cons.map(x=>pcolor[x]).filter(x=>x!=null));if(pcolor[c]==null||(!st.p.cons.includes(c))){const k=[0,1,2,3,4,6,7,5].find(k=>!used.has(k));pcolor[c]=k==null?7:k;}return PAL[pcolor[c]];}
+function vProd(){
+  const L=pLabels(),m=st.p.freq==='m',meas=st.p.meas,kind=meas==='g'?'pct':'idx',base=st.p.base;
+  Object.keys(pcolor).forEach(k=>{if(!st.p.cons.includes(k))delete pcolor[k];});
+  const avail=c=>CON[c]&&CON[c].by[base];
+  const opts=GROUPS.map(g=>({group:g,items:Object.values(CON).filter(x=>x.group===g&&avail(x.id)&&!st.p.cons.includes(x.id)).map(x=>[x.id,x.name])})).filter(g=>g.items.length);
+  main.appendChild(h('div',{class:'row'},[IE.chips(st.p.cons.map(c=>({key:c,name:CON[c].name})),k=>{st.p.cons=st.p.cons.filter(x=>x!==k);save();draw();},opts,v=>{st.p.cons.push(v);save();draw();},8,it=>pCol(it.key))]));
+  const missing=st.p.cons.filter(c=>!avail(c));
+  const c=card((meas==='g'?'Industrial production growth':'Index of Industrial Production')+(meas==='g'?' (% change on a year earlier)':' ('+base+' = 100)'),true),b=h('div');
+  const S=st.p.cons.filter(avail).map(cid=>({name:CON[cid].name,color:pCol(cid),bold:cid==='gen',pts:iipVals(cid,base,st.p.freq,meas,L).map((v,i)=>[i,v]).filter(p=>p[0]>=st.p.a&&p[0]<=st.p.b)}));
+  const lg=h('div');c.appendChild(lg);c.appendChild(b);main.appendChild(c);
+  IE.lineChart(b,{labels:L.map(m?ymLab:x=>x),series:S,kind,unit:meas==='g'?'% change on a year earlier, '+base+' base':'Index, '+base+' = 100',zero:meas==='g',align:m?(i=>+L[i].slice(0,4)*12+(+L[i].slice(5)-1)):(i=>+L[i].slice(0,4)),minStep:m&&st.p.b-st.p.a>48?12:1,tickLabel:m?(i=>st.p.b-st.p.a>48?L[i].slice(0,4):ymLab(L[i])):null,tipTitle:m?(i=>ymLong(L[i])):null,label:'IIP'});
+  if(b.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S.map(s=>({name:s.name,color:s.color})),1));
+  foot(c,'MoSPI Index of Industrial Production, '+BASES.find(x=>x.id===base).name+'. '+(m?'The latest month is a quick estimate, revised in later releases.':'Financial-year figures are MoSPI’s published annual indices.')+(missing.length?' Not available on this base: '+missing.map(x=>CON[x].name).join(', ')+'.':''));
+  // ranking for the last period in the window
+  const li=st.p.b,lab=m?ymLong(L[li]):L[li];
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  [['Manufacturing industries','Growth by manufacturing industry'],['By use','Growth by use of goods']].forEach(([grp,t])=>{
+    const cc=card(t+', '+lab+' (% change on a year earlier)'),bb=h('div');cc.appendChild(bb);g.appendChild(cc);
+    queue(()=>IE.rankBars(bb,{items:Object.values(CON).filter(x=>x.group===grp&&avail(x.id)).map(x=>({name:x.name,id:x.id,v:iipVals(x.id,base,st.p.freq,'g',L)[li],hl:st.p.cons.includes(x.id)})),kind:'pct',vname:lab,unit:'% change on a year earlier, '+base+' base',rh:25,lw:Math.min(260,bb.clientWidth*.5),onClick:d=>{if(!st.p.cons.includes(d.id)&&st.p.cons.length<8){st.p.cons.push(d.id);save();draw();window.scrollTo(0,0);}}}));
+    foot(cc,'Shows the last '+(m?'month':'year')+' in the period selected. Select a bar to add it to the chart above.');});
+  flush();
+  const rows=S.map(s=>[s.name].concat(L.slice(st.p.a,st.p.b+1).map((x,j)=>{const p=s.pts.find(q=>q[0]===st.p.a+j);return p?p[1]:null;})));
+  main.appendChild(h('h3',{text:'The numbers',style:'margin-top:24px'}));
+  main.appendChild(h('div',{class:'row'},[IE.copyBtn(()=>IE.toCSV(['Series'].concat(L.slice(st.p.a,st.p.b+1)),rows))]));
+  main.appendChild(IE.table(['Series'].concat(L.slice(st.p.a,st.p.b+1).map(m?ymLab:x=>x)),rows.map(r=>[r[0]].concat(r.slice(1).map(v=>v==null?'':kind==='pct'?v.toFixed(1):v.toFixed(1))))));
+}
+
+/* ================= Factory sector ================= */
+const fcolor={};function fCol(c){if(c==='all')return '#FFFFFF';const used=new Set(st.f.sel.map(x=>fcolor[x]).filter(x=>x!=null));if(fcolor[c]==null){const k=[0,1,2,3,4,6,7].find(k=>!used.has(k));fcolor[c]=k==null?7:k;}return PAL[fcolor[c]];}
+function barFac(){
+  bar.appendChild(IE.ctl('Indicator',IE.sel(ASI_OPTS,st.f.ind,v=>{st.f.ind=v;if(!measOk(v,st.f.meas))st.f.meas='raw';save();render();})));
+  bar.appendChild(IE.ctl('Measure',IE.sel(AMEAS.filter(x=>measOk(st.f.ind,x[0])),st.f.meas,v=>{st.f.meas=v;save();draw();})));
+  bar.appendChild(IE.rangeCtl(AY,st.f.a,st.f.b,(a,b)=>{st.f.a=a;st.f.b=b;save();draw();},'Years shown'));
+}
+function ftarget(c){return c==='all'?{kind:'all'}:{kind:'nic',code:c};}
+function fname(c){return c==='all'?'All industries':NIC[c].short;}
+function vFac(){
+  const ind=st.f.ind,m=st.f.meas,kind=akind(ind,m),unit=aunit(ind,m);
+  Object.keys(fcolor).forEach(k=>{if(!st.f.sel.includes(k))delete fcolor[k];});
+  const opts=[['all','All industries']].filter(x=>!st.f.sel.includes('all')).concat(NICS.filter(k=>!st.f.sel.includes(k)).map(k=>[k,NIC[k].short]));
+  main.appendChild(h('div',{class:'row'},[IE.chips(st.f.sel.map(c=>({key:c,name:fname(c)})),k=>{st.f.sel=st.f.sel.filter(x=>x!==k);save();draw();},opts,v=>{st.f.sel.push(v);save();draw();},8,it=>fCol(it.key))]));
+  const c=card(ANAME(ind)+' ('+unit.replace(/^% · .*/,'%')+')',true),lg=h('div'),b=h('div');c.appendChild(lg);c.appendChild(b);main.appendChild(c);
+  const S=st.f.sel.map(k=>({name:fname(k),color:fCol(k),dash:k==='all'?'5 4':null,pts:d3.range(st.f.a,st.f.b+1).map(i=>[i,aval(ftarget(k),ind,i,m)])}));
+  IE.lineChart(b,{labels:AY,series:S,kind,unit,zero:true,align:i=>+AY[i].slice(0,4),label:ANAME(ind)});
+  if(b.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S.map(s=>({name:s.name,color:s.color})),1));
+  foot(c,'Annual Survey of Industries, NIC 2008 industry groups, all-India. '+(m==='real'||m==='gk'?'Deflated with the all-India GDP deflator (2011-12 = 100), which is a broad price index, not an industry-specific one. ':'')+(m==='share'?'Share of the all-industries total for India. ':'')+'Values are as published by MoSPI; ₹ lakh figures are shown in ₹ crore. The survey year runs April to March.');
+  const yi=st.f.b,g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  { const cc=card('Industries ranked, '+AY[yi]+': '+ANAME(ind)+' ('+(m==='raw'&&!DERIVED[ind]?'% of all industries':unit.replace(/^% · .*/,'%'))+')'),bb=h('div');cc.appendChild(bb);g.appendChild(cc);
+    const mm=m==='raw'&&!DERIVED[ind]?'share':m;
+    queue(()=>IE.rankBars(bb,{items:NICS.map(k=>({name:NIC[k].short,full:NIC[k].name,code:k,v:aval({kind:'nic',code:k},ind,yi,mm),hl:st.f.sel.includes(k)})),kind:akind(ind,mm),vname:AY[yi],ref:null,unit:aunit(ind,mm),rh:24,lw:Math.min(270,bb.clientWidth*.52),onClick:d=>{if(!st.f.sel.includes(d.code)&&st.f.sel.length<8){st.f.sel.push(d.code);save();draw();window.scrollTo(0,0);}}}));
+    foot(cc,'All '+NICS.length+' industry groups in the last year selected. Select a bar to add it to the chart above.'); }
+  if(!DERIVED[ind]&&(m==='raw'||m==='real')){
+    const cc=card('Composition: '+ANAME(ind)+' by industry ('+unit+')'),bb=h('div'),lgd=h('div');cc.appendChild(lgd);cc.appendChild(bb);g.appendChild(cc);
+    const top=NICS.map(k=>({k,v:aval({kind:'nic',code:k},ind,yi,m)||0})).sort((p,q)=>q.v-p.v).slice(0,6).map(x=>x.k);
+    const keys=top.map((k,j)=>({name:NIC[k].short,color:PAL[[0,1,2,3,4,6][j]],vals:AY.map((y,i)=>i<st.f.a||i>st.f.b?null:aval({kind:'nic',code:k},ind,i,m))}));
+    keys.push({name:'All other industries',color:PAL[7],vals:AY.map((y,i)=>{if(i<st.f.a||i>st.f.b)return null;const t=aval({kind:'all'},ind,i,m);if(t==null)return null;return t-keys.reduce((s,k)=>s+(k.vals[i]||0),0);})});
+    lgd.appendChild(IE.legend(keys));queue(()=>IE.stackChart(bb,{labels:AY,keys,kind,unit,totalName:'All industries',align:i=>+AY[i].slice(0,4)}));
+    foot(cc,'The six largest industries in '+AY[yi]+'; the rest are grouped. Totals are the all-India figure for all industries.'); }
+  flush();
+  main.appendChild(h('h3',{text:'The numbers',style:'margin-top:24px'}));
+  const yrs=d3.range(st.f.a,st.f.b+1),rows=['all'].concat(NICS).map(k=>[fname(k)].concat(yrs.map(i=>aval(ftarget(k),ind,i,m))));
+  main.appendChild(h('div',{class:'row'},[IE.copyBtn(()=>IE.toCSV(['Industry'].concat(yrs.map(i=>AY[i])),rows))]));
+  main.appendChild(IE.table(['Industry ('+unit+')'].concat(yrs.map(i=>AY[i])),rows.map(r=>[r[0]].concat(r.slice(1).map(v=>v==null?'':fmt(v,kind).replace(/^₹| cr$|%$/g,''))))));
+}
+
+/* ================= States ================= */
+function barStates(){
+  bar.appendChild(IE.ctl('Indicator',IE.sel(ASI_OPTS,st.s.ind,v=>{st.s.ind=v;if(!measOk(v,st.s.meas))st.s.meas='raw';save();render();})));
+  bar.appendChild(IE.ctl('Measure',IE.sel(AMEAS.filter(x=>measOk(st.s.ind,x[0])),st.s.meas,v=>{st.s.meas=v;save();draw();})));
+  bar.appendChild(IE.yearCtl(AY,st.s.yi,i=>{st.s.yi=Math.max(1,i);save();draw();}));
+}
+function vStates(){
+  const ind=st.s.ind,m=st.s.meas,yi=st.s.yi,kind=akind(ind,m),unit=aunit(ind,m),div=m==='g'||m==='gk'||ind==='d:prof';
+  const vals={};ASTATES.forEach(s=>vals[s]=aval({kind:'state',name:s},ind,yi,m));
+  let pool=null;if(kind==='pct'){pool=[];ASTATES.forEach(s=>d3.range(1,NAY).forEach(i=>{const v=aval({kind:'state',name:s},ind,i,m);if(v!=null&&isFinite(v))pool.push(v);}));}
+  const cl=div?IE.classer(Object.values(vals),{pool}):IE.classer(Object.values(vals));
+  const hd=ANAME(ind)+' ('+unit.replace(/^% · .*/,'%')+'), '+AY[yi];
+  const row=h('div',{class:'maprow'});main.appendChild(row);
+  const c1=card(hd),c2=card('Ranking: '+hd);row.appendChild(c1);row.appendChild(c2);
+  if(cl)c1.appendChild(IE.scaleLegend(cl,kind));const b1=h('div');c1.appendChild(b1);
+  IE.mapChart(b1,{values:vals,cl,kind,unit,title:AY[yi],lookup:n=>{if(n==='Ladakh'&&vals['Ladakh']==null)return 'Jammu & Kashmir';return GEO2ASI[n]||n;},onClick:n=>{st.s.state=n;save();draw();document.getElementById('profile').scrollIntoView();},label:'Map: '+hd});
+  foot(c1,'Select a state for its profile below. '+(div?'Pink is above zero, cyan below. ':'Colour bands hold roughly equal numbers of states. ')+'Dark areas have no data for this year.');
+  const b2=h('div');c2.appendChild(b2);
+  const all=aval({kind:'all'},ind,yi,m);const items=ASTATES.map(s=>({name:STNAME(s),key:s,v:vals[s],color:cl&&vals[s]!=null?cl.f(vals[s]):null}));
+  if(all!=null&&m!=='share'&&kind!=='cr'&&kind!=='num')items.push({name:'All India',key:'All India',v:all,color:'#fff',hl:true});
+  IE.rankBars(b2,{items,kind,unit,vname:AY[yi],rh:24,onClick:d=>{if(d.key!=='All India'){st.s.state=d.key;save();draw();document.getElementById('profile').scrollIntoView();}}});
+  foot(c2,unit+'. '+(items.some(d=>d.key==='All India')?'The white bar is all India. ':'')+'Andhra Pradesh includes Telangana before 2014-15, and Jammu and Kashmir includes Ladakh before 2019-20.');
+  // state profile
+  const s=st.s.state,sn=STNAME(s);
+  const ph=h('h2',{id:'profile',text:sn+': factory profile',style:'margin-top:30px'});main.appendChild(ph);
+  main.appendChild(h('div',{class:'row'},[IE.ctl('State or UT',IE.sel(ASTATES.map(x=>[x,STNAME(x)]),s,v=>{st.s.state=v;save();draw();document.getElementById('profile').scrollIntoView();}))]));
+  const g=h('div',{class:'grid g2'});main.appendChild(g);
+  { const cc=card(sn+': share of all-India factory sector (%)'),lg=h('div'),bb=h('div');cc.appendChild(lg);cc.appendChild(bb);g.appendChild(cc);
+    const S=[['Gross Value Added','GVA'],['Total Number of Persons Engaged','Persons engaged'],['Factories in Operation','Factories in operation'],['Gross Fixed Capital Formation','Investment (GFCF)']].map(([n,l],j)=>({name:l,color:PAL[j],pts:d3.range(NAY).map(i=>[i,aval({kind:'state',name:s},n,i,'share')])}));
+    lg.appendChild(IE.legend(S,1));queue(()=>IE.lineChart(bb,{labels:AY,series:S,kind:'pct',unit:'% of all-India total',align:i=>+AY[i].slice(0,4),endLabels:false,label:sn+' shares'}));
+    foot(cc,'A state whose share of GVA is above its share of jobs has more output per worker than the national average.'); }
+  { const mix=st.s.mix,cc=card('What '+sn+'’s factories make, '+AY[yi]+' (% of the state’s '+(mix==='Gross Value Added'?'GVA':mix==='Total Output'?'output':mix==='Factories in Operation'?'factories':'persons engaged')+')'),bb=h('div');
+    cc.appendChild(h('div',{class:'row'},[IE.seg([['Gross Value Added','GVA'],['Total Number of Persons Engaged','Jobs'],['Total Output','Output'],['Factories in Operation','Factories']],mix,v=>{st.s.mix=v;save();draw();document.getElementById('profile').scrollIntoView();})]));
+    cc.appendChild(bb);g.appendChild(cc);
+    const tot=rawv(A.states[s]||{},mix,yi);
+    const items=NICS.map(k=>{const v=rawv(rec({kind:'snic',state:s,code:k}),mix,yi);return {name:NIC[k].short,full:NIC[k].name,v:v!=null&&tot?v/tot*100:null};}).filter(d=>d.v!=null&&d.v!==0).sort((p,q)=>q.v-p.v).slice(0,15);
+    queue(()=>IE.rankBars(bb,{items,kind:'pct',vname:AY[yi],unit:'% of the state total',rh:24,lw:Math.min(270,bb.clientWidth*.52),empty:'MoSPI publishes no industry breakdown for '+sn+' in '+AY[yi]+'.'}));
+    foot(cc,'Top 15 industry groups. Small states have few factories in some industries, and MoSPI suppresses some cells to protect confidentiality, so shares may not add to 100.'); }
+  flush();
+}
+
+/* ================= Methods ================= */
+function vMethods(){
+  main.appendChild(h('div',{class:'methods',html:`
+<h2>Sources and methods</h2>
+<h3>Index of Industrial Production (IIP)</h3>
+<ul>
+<li><b>Source.</b> Ministry of Statistics and Programme Implementation (MoSPI), via its eSankhyiki API. Monthly and financial-year indices and growth rates are shown exactly as published.</li>
+<li><b>Two bases.</b> MoSPI moved the IIP to a 2022-23 base in 2026. The current series runs from April 2023 to ${esc(ymLong(LATEST))}. The previous 2011-12 base runs from April 2012 to March 2026 and gives the longer history. The two are not spliced. Their industry lists differ slightly: the new base splits mining, electricity and water supply into more detail.</li>
+<li><b>Revisions.</b> MoSPI's first estimate for each month is a quick estimate and is revised in the following releases. The dashboard always shows the latest published figure.</li>
+<li><b>What it measures.</b> The IIP tracks the volume of production of a fixed basket of items across mining, manufacturing and electricity. Use-based groups regroup the same items by end use.</li>
+</ul>
+<h3>Annual Survey of Industries (ASI)</h3>
+<ul>
+<li><b>Source.</b> MoSPI Annual Survey of Industries, NIC 2008 series, ${esc(AY[0])} to ${esc(AY[NAY-1])}, combined rural and urban, via the eSankhyiki API. The ASI covers factories registered under the Factories Act, so it excludes small unregistered firms.</li>
+<li><b>Units.</b> MoSPI publishes money values in ₹ lakh (fuel in ₹ thousand); the dashboard shows them in ₹ crore. Mandays are published in thousands and shown as person-days.</li>
+<li><b>Derived measures.</b> Per factory divides by factories in operation; per person engaged divides by total persons engaged; shares divide by the all-India figure for all industries. Ratios such as women's share of directly employed workers use the two published counts. Constant prices divide by MoSPI's all-India GDP deflator (2011-12 = 100); this is a broad price index, so real figures are an approximation, not an official series.</li>
+<li><b>Breaks to watch.</b> The number of factories rises sharply between 2009-10 and 2010-11, so compare counts across that year with care. Andhra Pradesh includes Telangana before 2014-15; Jammu and Kashmir includes Ladakh before 2019-20; Dadra and Nagar Haveli and Daman and Diu are reported separately before their merger. The latest survey year on the API is ${esc(AY[NAY-1])}; the dashboard will pick up newer years when MoSPI adds them.</li>
+</ul>
+<h3>Updates</h3>
+<ul>
+<li>A script in the site's repository fetches the data from MoSPI and a scheduled job re-runs it, so new monthly IIP releases and new ASI years appear without manual work. Data last fetched ${esc(I.meta.fetched.slice(0,10))}.</li>
+<li>Map boundaries follow the india-maps-data project (github.com/udit-001/india-maps-data).</li>
+</ul>`}));
+}
+
+render();
+})();
+</script>
+</body>
+</html>
