@@ -43,14 +43,30 @@ def picture(it):
     return f'<a href="/charts/{E(it["file"])}">{img}</a>'
 
 
+def interactive(it):
+    """Interactive version (title first, then controls, legend, chart); the static image is the fallback."""
+    spec = dict(it["interactive"], title=it["title"])
+    if not spec["data"].startswith("/"):
+        spec["data"] = "/charts/" + spec["data"]
+    return (f'<div class="cod-int" data-spec="{html.escape(json.dumps(spec, ensure_ascii=False), quote=True)}">'
+            f'<h3>{E(it["title"])}</h3><div class="ctls cod-ui"></div><div class="legend cod-legend"></div>'
+            f'<div class="plot"><div class="cod-fallback">{picture(it)}</div><div class="cod-plot"></div></div></div>')
+
+
+def visual(it):
+    return interactive(it) if it.get("interactive") else picture(it)
+
+
 def front_block(it):
     src = f'<p class="cod-src">Source: {E(it["source"])}</p>' if it.get("source") else ""
     cap = f'<p class="cod-cap">{E(it["caption"])}</p>' if it.get("caption") else ""
+    sub = f'<p class="cod-sub">{E(it["subtitle"])}</p>' if it.get("subtitle") and it.get("interactive") else ""
     return f'''    <div class="sh"><h2 id="h-chart">Chart of the day</h2><a href="/charts/">All charts →</a></div>
     <figure class="cod">
-      {picture(it)}
+      {visual(it)}
       <figcaption>
         <time datetime="{it["date"]}">{nice_date(it["date"])}</time>
+        {sub}
         {cap}
         {src}
       </figcaption>
@@ -60,8 +76,9 @@ def front_block(it):
 def archive_page(items):
     cards = "\n".join(f'''    <figure class="arc" id="{it["date"]}">
       <time datetime="{it["date"]}">{nice_date(it["date"])}</time>
-      <h2>{E(it["title"])}</h2>
-      {picture(it)}
+      {'' if it.get("interactive") else f'<h2>{E(it["title"])}</h2>'}
+      {visual(it)}
+      {f'<p class="sub2">{E(it["subtitle"])}</p>' if it.get("subtitle") and it.get("interactive") else ''}
       {f'<p>{E(it["caption"])}</p>' if it.get("caption") else ''}
       {f'<p class="src">Source: {E(it["source"])}</p>' if it.get("source") else ''}
     </figure>''' for it in items)
@@ -77,6 +94,7 @@ def archive_page(items):
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/ie.css">
+<link rel="stylesheet" href="/assets/cod.css">
 <style>
 .arcs{{display:grid;gap:56px;margin-top:28px;max-width:1100px}}
 .arc{{margin:0}}
@@ -85,6 +103,7 @@ def archive_page(items):
 .arc img{{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px}}
 .arc p{{color:var(--ink2);max-width:72ch;margin:12px 0 0}}
 .arc p.src{{color:var(--ink3);font-size:15px;margin-top:6px}}
+.arc .cod-int h3{{font-size:clamp(24px,3vw,30px)}}
 </style>
 </head>
 <body>
@@ -99,6 +118,9 @@ def archive_page(items):
   </main>
   <footer class="sitefoot">An <a href="/">indiaemerges.com</a> page · Contact: <a href="mailto:forgingindia@indiaemerges.com">forgingindia@indiaemerges.com</a></footer>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="/assets/ie.js"></script>
+<script src="/assets/cod.js"></script>
 </body>
 </html>
 '''

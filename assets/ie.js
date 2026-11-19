@@ -149,6 +149,44 @@ IE.colChart=function(el,o){
   ov.on('mousemove',move).on('touchstart',move,{passive:true}).on('touchmove',move,{passive:true}).on('mouseleave',()=>{hl.style('display','none');IE.tip.hide();});
 };
 
+
+/* ---------- daily/irregular columns with optional stacking and overlaid lines ----------
+   o.labels; o.bars={vals,name,pos:{name,color},neg:{name,color}} or o.stack=[{name,color,vals}];
+   o.lines=[{name,color,vals,width}]; o.ticks=[candidate tick indices]; o.tickLabel(i); o.tipTitle(i); o.fmt(v) */
+IE.comboChart=function(el,o){
+  const L=o.labels,n=L.length;el.textContent='';if(!n)return empty(el,o.empty);
+  const W=el.clientWidth||600,Ht=o.height||(W>640?440:340),m={t:14,r:12,b:34,l:50},F=o.fmt||(v=>IE.fmt(v,o.kind));
+  let lo=0,hi=0;
+  if(o.stack){for(let i=0;i<n;i++){let p=0,q=0;o.stack.forEach(s=>{const v=s.vals[i];if(v>0)p+=v;else if(v<0)q+=v;});hi=Math.max(hi,p);lo=Math.min(lo,q);}}
+  else o.bars.vals.forEach(v=>{if(v!=null){hi=Math.max(hi,v);lo=Math.min(lo,v);}});
+  (o.lines||[]).forEach(l=>l.vals.forEach(v=>{if(v!=null){hi=Math.max(hi,v);lo=Math.min(lo,v);}}));
+  const y=d3.scaleLinear().domain([lo,hi||1]).nice(6).range([Ht-m.b,m.t]),ticks=y.ticks(6);
+  const tf=o.tickFmt||IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));m.l=Math.max(40,d3.max(ticks,t=>tf(t).length)*8.6+10);
+  const x=d3.scaleBand().domain(d3.range(n)).range([m.l,W-m.r]).paddingInner(n>120?.15:.22),xc=i=>x(i)+x.bandwidth()/2,bw=Math.max(1,x.bandwidth());
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Chart');
+  yAxis(svg,y,ticks,tf,m,W);
+  const g=svg.append('g');
+  if(o.stack){for(let i=0;i<n;i++){let p=0,q=0;o.stack.forEach(s=>{const v=s.vals[i];if(!v)return;const a=v>0?p:q,b=a+v;if(v>0)p=b;else q=b;
+      g.append('rect').attr('x',x(i)).attr('width',bw).attr('y',y(Math.max(a,b))).attr('height',Math.max(.5,Math.abs(y(a)-y(b)))).attr('fill',s.color);});}}
+  else g.selectAll('rect').data(d3.range(n).filter(i=>o.bars.vals[i]!=null)).join('rect').attr('x',i=>x(i)).attr('width',bw)
+      .attr('y',i=>Math.min(y(0),y(o.bars.vals[i]))).attr('height',i=>Math.max(.5,Math.abs(y(o.bars.vals[i])-y(0)))).attr('fill',i=>o.bars.vals[i]>=0?o.bars.pos.color:o.bars.neg.color);
+  svg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(0)).attr('y2',y(0)).attr('stroke','#fff').attr('stroke-width',1);
+  (o.lines||[]).forEach(l=>{const pts=d3.range(n).filter(i=>l.vals[i]!=null);svg.append('path').attr('d',d3.line().x(i=>xc(i)).y(i=>y(l.vals[i]))(pts)).attr('fill','none').attr('stroke',l.color).attr('stroke-width',l.width||2.5).attr('stroke-linejoin','round');});
+  // x ticks: choose from candidates so labels never collide
+  const cand=o.ticks||d3.range(n),lw=d3.max(cand,i=>String(o.tickLabel?o.tickLabel(i):L[i]).length)*8.4+14,fit=Math.max(1,Math.floor((W-m.l-m.r)/lw));
+  const step=Math.ceil(cand.length/fit),xa=svg.append('g').attr('class','axis');
+  cand.filter((c,k)=>k%step===0).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
+  edgeFix(xa,W);
+  const hl=svg.append('rect').attr('y',m.t).attr('height',Ht-m.t-m.b).attr('width',Math.max(2,x.step())).attr('fill','#fff').attr('opacity',.18).style('display','none');
+  const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
+  function move(ev){const pt=d3.pointer(ev.touches?ev.touches[0]:ev,svg.node());const i=Math.max(0,Math.min(n-1,Math.floor((pt[0]-m.l)/x.step())));hl.style('display',null).attr('x',x(i)-x.step()*x.paddingInner()/2);
+    let r='';if(o.stack){let t=0;o.stack.forEach(s=>{const v=s.vals[i];if(v!=null)t+=v;r+='<div class="r"><span>'+IE.sw(s.color)+esc(s.name)+'</span><b>'+F(v)+'</b></div>';});r='<div class="r"><span>'+esc(o.totalName||'Total')+'</span><b>'+F(t)+'</b></div>'+r;}
+    else{const v=o.bars.vals[i],k=v>=0?o.bars.pos:o.bars.neg;r='<div class="r"><span>'+IE.sw(k.color)+esc(k.name)+'</span><b>'+F(v)+'</b></div>';}
+    (o.lines||[]).forEach(l=>{if(l.vals[i]!=null)r+='<div class="r"><span>'+IE.sw(l.color,1)+esc(l.name)+'</span><b>'+F(l.vals[i])+'</b></div>';});
+    IE.tip.show('<div class="t">'+esc(o.tipTitle?o.tipTitle(i):L[i])+'</div>'+r+(o.extra?o.extra(i):'')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);}
+  ov.on('mousemove',move).on('touchstart',move,{passive:true}).on('touchmove',move,{passive:true}).on('mouseleave',()=>{hl.style('display','none');IE.tip.hide();});
+};
+
 /* ---------- stacked columns over time ---------- */
 IE.stackChart=function(el,o){
   const L=o.labels;el.textContent='';const yrs=d3.range(L.length).filter(i=>o.keys.some(k=>k.vals[i]!=null));if(!yrs.length)return empty(el,o.empty);

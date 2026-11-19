@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/ie.css">
+<link rel="stylesheet" href="/assets/cod.css">
 <style>
 .arcs{display:grid;gap:56px;margin-top:28px;max-width:1100px}
 .arc{margin:0}
@@ -18,6 +19,7 @@
 .arc img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px}
 .arc p{color:var(--ink2);max-width:72ch;margin:12px 0 0}
 .arc p.src{color:var(--ink3);font-size:15px;margin-top:6px}
+.arc .cod-int h3{font-size:clamp(24px,3vw,30px)}
 </style>
 </head>
 <body>
@@ -30,13 +32,17 @@
   <main class="arcs">
     <figure class="arc" id="2026-11-19">
       <time datetime="2026-11-19">19 November 2026</time>
-      <h2>Daily net FPI investment in India, March to November 2026</h2>
-      <a href="/charts/2026-11-19-net-fpi.png"><img src="/charts/2026-11-19-net-fpi.png" alt="Bar chart of daily net foreign portfolio investment in India from March to November 2026 in US dollars, with a five-day moving average. Outflows dominate March, April and October; inflows dominate July and November." loading="lazy"></a>
+      
+      <div class="cod-int" data-spec="{&quot;data&quot;: &quot;/charts/data/2026-11-19-net-fpi.csv&quot;, &quot;x&quot;: &quot;date&quot;, &quot;measures&quot;: [{&quot;label&quot;: &quot;US$ billion&quot;, &quot;unit&quot;: &quot;US$ billion&quot;, &quot;bar&quot;: &quot;net_usd_bn&quot;, &quot;line&quot;: &quot;ma5_usd_bn&quot;, &quot;prefix&quot;: &quot;US$&quot;, &quot;suffix&quot;: &quot; bn&quot;, &quot;dec&quot;: 2, &quot;stack&quot;: [[&quot;equity_usd_bn&quot;, &quot;Equity&quot;], [&quot;debt_usd_bn&quot;, &quot;Debt&quot;], [&quot;hybrid_usd_bn&quot;, &quot;Hybrid&quot;], [&quot;mutual_funds_usd_bn&quot;, &quot;Mutual funds&quot;], [&quot;aifs_usd_bn&quot;, &quot;AIFs&quot;]]}, {&quot;label&quot;: &quot;₹ crore&quot;, &quot;unit&quot;: &quot;₹ crore&quot;, &quot;bar&quot;: &quot;net_cr&quot;, &quot;line&quot;: &quot;ma5_cr&quot;, &quot;prefix&quot;: &quot;₹&quot;, &quot;suffix&quot;: &quot; cr&quot;, &quot;dec&quot;: 0}], &quot;pos&quot;: &quot;Net inflow&quot;, &quot;neg&quot;: &quot;Net outflow&quot;, &quot;line_name&quot;: &quot;5-trading-day moving average&quot;, &quot;stack_name&quot;: &quot;By asset class&quot;, &quot;total_name&quot;: &quot;Total, all asset classes&quot;, &quot;extra&quot;: [[&quot;usd_inr&quot;, &quot;₹ per US$ (RBI reference rate)&quot;, 4]], &quot;title&quot;: &quot;Daily net FPI investment in India, March to November 2026&quot;}"><h3>Daily net FPI investment in India, March to November 2026</h3><div class="ctls cod-ui"></div><div class="legend cod-legend"></div><div class="plot"><div class="cod-fallback"><a href="/charts/2026-11-19-net-fpi.png"><img src="/charts/2026-11-19-net-fpi.png" alt="Bar chart of daily net foreign portfolio investment in India from March to November 2026 in US dollars, with a five-day moving average. Outflows dominate March, April and October; inflows dominate July and November." loading="lazy"></a></div><div class="cod-plot"></div></div></div>
+      <p class="sub2">All asset classes (equity, debt, hybrid, mutual funds, AIFs), by NSDL reporting date. US dollar figures are NSDL&#x27;s, converted at the RBI reference rate for each day.</p>
       <p>Foreign portfolio investors pulled money out of India through March and April, turned buyers from late June, sold again from late September into October, and have bought heavily since the start of November.</p>
       <p class="src">Source: NSDL FPI Monitor, daily trends in FPI investments, data to 18 November 2026</p>
     </figure>
   </main>
   <footer class="sitefoot">An <a href="/">indiaemerges.com</a> page · Contact: <a href="mailto:forgingindia@indiaemerges.com">forgingindia@indiaemerges.com</a></footer>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="/assets/ie.js"></script>
+<script src="/assets/cod.js"></script>
 </body>
 </html>

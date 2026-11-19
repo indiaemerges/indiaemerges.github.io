@@ -5,6 +5,65 @@
     "title": "Daily net FPI investment in India, March to November 2026",
     "caption": "Foreign portfolio investors pulled money out of India through March and April, turned buyers from late June, sold again from late September into October, and have bought heavily since the start of November.",
     "alt": "Bar chart of daily net foreign portfolio investment in India from March to November 2026 in US dollars, with a five-day moving average. Outflows dominate March, April and October; inflows dominate July and November.",
-    "source": "NSDL FPI Monitor, daily trends in FPI investments, data to 18 November 2026"
+    "source": "NSDL FPI Monitor, daily trends in FPI investments, data to 18 November 2026",
+    "subtitle": "All asset classes (equity, debt, hybrid, mutual funds, AIFs), by NSDL reporting date. US dollar figures are NSDL's, converted at the RBI reference rate for each day.",
+    "interactive": {
+      "data": "data/2026-11-19-net-fpi.csv",
+      "x": "date",
+      "measures": [
+        {
+          "label": "US$ billion",
+          "unit": "US$ billion",
+          "bar": "net_usd_bn",
+          "line": "ma5_usd_bn",
+          "prefix": "US$",
+          "suffix": " bn",
+          "dec": 2,
+          "stack": [
+            [
+              "equity_usd_bn",
+              "Equity"
+            ],
+            [
+              "debt_usd_bn",
+              "Debt"
+            ],
+            [
+              "hybrid_usd_bn",
+              "Hybrid"
+            ],
+            [
+              "mutual_funds_usd_bn",
+              "Mutual funds"
+            ],
+            [
+              "aifs_usd_bn",
+              "AIFs"
+            ]
+          ]
+        },
+        {
+          "label": "₹ crore",
+          "unit": "₹ crore",
+          "bar": "net_cr",
+          "line": "ma5_cr",
+          "prefix": "₹",
+          "suffix": " cr",
+          "dec": 0
+        }
+      ],
+      "pos": "Net inflow",
+      "neg": "Net outflow",
+      "line_name": "5-trading-day moving average",
+      "stack_name": "By asset class",
+      "total_name": "Total, all asset classes",
+      "extra": [
+        [
+          "usd_inr",
+          "₹ per US$ (RBI reference rate)",
+          4
+        ]
+      ]
+    }
   }
 ]
