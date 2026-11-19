@@ -70,6 +70,12 @@ h2{font-family:var(--disp);font-weight:600;font-size:clamp(32px,4vw,44px);margin
 .dot{width:13px;height:13px;border-radius:3px;display:inline-block;flex:none}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
 
+ .cod{margin:0}
+.cod img{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:12px}
+.cod figcaption{margin-top:14px;max-width:75ch}
+.cod time{color:var(--ink3);font-size:16px}
+.cod-cap{font-size:clamp(18px,2vw,21px);margin:6px 0 0}
+.cod-src{color:var(--ink3);font-size:15px;margin:8px 0 0}
 .posts{list-style:none;margin:0;padding:0;display:grid;gap:0}
 .post{display:grid;grid-template-columns:150px 1fr;column-gap:28px;padding:22px 0;border-top:1px solid var(--line)}
 .post:first-child{border-top:0;padding-top:0}
@@ -118,6 +124,7 @@ footer a:hover{color:#fff}
   <header class="top">
     <a class="wm" href="/" aria-label="indiaemerges home">india<span>emerges</span></a>
     <nav class="main" aria-label="Main">
+      <a href="#chart">Chart of the day</a>
       <a href="#dashboards">Dashboards</a>
       <a href="#writing">Writing</a>
       <a href="#about">About</a>
@@ -134,6 +141,20 @@ footer a:hover{color:#fff}
       <a href="#writing">Read the latest story</a>
     </div>
   </div>
+
+  <section id="chart" aria-labelledby="h-chart">
+    <!-- CHART:START -->
+    <div class="sh"><h2 id="h-chart">Chart of the day</h2><a href="/charts/">All charts →</a></div>
+    <figure class="cod">
+      <a href="/charts/2026-11-19-net-fpi.png"><img src="/charts/2026-11-19-net-fpi.png" alt="Bar chart of daily net foreign portfolio investment in India from March to November 2026 in US dollars, with a five-day moving average. Outflows dominate March, April and October; inflows dominate July and November." loading="lazy"></a>
+      <figcaption>
+        <time datetime="2026-11-19">19 November 2026</time>
+        <p class="cod-cap">Foreign portfolio investors pulled money out of India through March and April, turned buyers from late June, sold again from late September into October, and have bought heavily since the start of November.</p>
+        <p class="cod-src">Source: NSDL FPI Monitor, daily trends in FPI investments, data to 18 November 2026</p>
+      </figcaption>
+    </figure>
+    <!-- CHART:END -->
+  </section>
 
   <section id="dashboards" aria-labelledby="h-dash">
     <div class="sh"><h2 id="h-dash">Dashboards</h2></div>
