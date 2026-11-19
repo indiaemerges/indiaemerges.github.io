@@ -6,7 +6,7 @@
 <title>indiaemerges</title>
 <meta name="description" content="Data journalism and open dashboards on India's economy, public finances, trade and industry, built on official statistics.">
 <meta property="og:title" content="indiaemerges">
-<meta property="og:description" content="India's economy, in its own numbers. Dashboards and data stories built on official statistics.">
+<meta property="og:description" content="Emerging India in numbers: data dashboards and data stories on India's growth, public finances, trade, industry and energy.">
 <meta property="og:url" content="https://indiaemerges.com/">
 <meta property="og:type" content="website">
 <link rel="canonical" href="https://indiaemerges.com/">
@@ -58,7 +58,9 @@ h2{font-family:var(--disp);font-weight:600;font-size:clamp(32px,4vw,44px);margin
 .cd{color:var(--ink2);font-size:16.5px}
 .cm{color:var(--ink3);font-size:14.5px;margin-top:auto;padding-top:6px}
 .new{display:inline-block;vertical-align:middle;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid #fff;border-radius:6px;padding:1px 7px;margin-left:8px}
-.card.feat{padding:30px 30px 26px 34px;margin-bottom:40px}
+.card.feat{padding:30px 30px 26px 34px}
+.cards.two{grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:18px}
+.more{color:var(--ink2);margin:22px 0 0}
 .card.feat .stripe{width:7px}
 .card.feat .ct{font-size:clamp(28px,3.4vw,36px)}
 .card.feat .cd{font-size:19px;max-width:68ch}
@@ -120,8 +122,8 @@ footer a:hover{color:#fff}
   </header>
 
   <div class="hero">
-    <h1>India’s economy, in its own numbers.</h1>
-    <p>Open dashboards and data stories on India’s growth, public finances, trade, industry and energy, built on the government’s own statistics.</p>
+    <h1>Emerging India in numbers</h1>
+    <p>Data dashboards and data stories on India’s growth, public finances, trade, industry and energy.</p>
     <div class="cta">
       <a class="p" href="#dashboards">Explore the dashboards</a>
       <a href="#writing">Read the latest story</a>
@@ -129,124 +131,22 @@ footer a:hover{color:#fff}
   </div>
 
   <section id="dashboards" aria-labelledby="h-dash">
-    <div class="sh"><h2 id="h-dash">Dashboards</h2><a href="/india-data-dashboard/explore/">Open the data explorer →</a></div>
-        <a class="card feat" href="/state-finances/" style="--cat:#6FD3EA">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">State Finances Explorer <span class="new">New</span></span>
-          <span class="cd">Budgets of 31 states and union territories from 1990-91 to 2025-26: receipts, spending, deficits and 355 budget heads, set against each state’s economy, with maps and state-by-state comparison.</span>
-          <span class="cm">RBI e-STATES, MoSPI · Annual</span>
-        </a>
-      <div class="groups">
-      <div class="group">
-        <h3><i class="dot" style="background:#F3E67C" aria-hidden="true"></i>Economy and money</h3>
-        <div class="cards">
-        <a class="card" href="/india-data-dashboard/dashboards/gdp-fy26-provisional/" style="--cat:#F3E67C">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">GDP 2025-26: provisional estimates</span>
-          <span class="cd">MoSPI’s provisional estimates released on 5 June 2026: 7.7% real GDP growth, the fourth-quarter sector breakdown, expenditure components and 29 leading indicators.</span>
-          <span class="cm">MoSPI NAS · Annual</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/gdp-growth/" style="--cat:#F3E67C">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">GDP and national accounts</span>
-          <span class="cd">GDP, GVA, consumption, investment, trade, national income and savings.</span>
-          <span class="cm">MoSPI NAS, World Bank · Quarterly</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/inflation/" style="--cat:#F3E67C">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Inflation: CPI and WPI</span>
-          <span class="cd">Consumer and wholesale price indices across 600+ items, with state-level CPI and commodity-level WPI.</span>
-          <span class="cm">MoSPI CPI and WPI · Monthly</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/rbi-monetary/" style="--cat:#F3E67C">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">RBI monetary policy</span>
-          <span class="cd">Policy rates, forex reserves, monetary aggregates and banking statistics.</span>
-          <span class="cm">RBI DBIE · Monthly</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/banking/" style="--cat:#F3E67C">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Banking and credit</span>
-          <span class="cd">Bank credit, deposits, gross NPA ratio, sectoral credit deployment and credit-to-GDP.</span>
-          <span class="cm">RBI DBIE · Annual</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/trade/" style="--cat:#F3E67C">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">International trade</span>
-          <span class="cd">Exports, imports, the trade balance and trading partners.</span>
-          <span class="cm">World Bank, MoSPI NAS · Annual</span>
-        </a>
-        </div>
-      </div>
-      <div class="group">
-        <h3><i class="dot" style="background:#F590C6" aria-hidden="true"></i>Jobs and society</h3>
-        <div class="cards">
-        <a class="card" href="/india-data-dashboard/dashboards/employment/" style="--cat:#F590C6">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Employment and labour</span>
-          <span class="cd">Unemployment rate, labour force participation, worker population ratio, wages and worker distribution.</span>
-          <span class="cm">MoSPI PLFS · Quarterly</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/population/" style="--cat:#F590C6">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Population and demographics</span>
-          <span class="cd">Census 2011 population, literacy, urbanisation and household amenities by state and district.</span>
-          <span class="cm">Census of India · Decennial</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/human-development/" style="--cat:#F590C6">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Human development</span>
-          <span class="cd">Literacy, life expectancy, infant mortality, labour force participation and inequality.</span>
-          <span class="cm">World Bank WDI · Annual</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/poverty-mpi/" style="--cat:#F590C6">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Multidimensional poverty</span>
-          <span class="cd">State-wise Multidimensional Poverty Index, headcount ratio and intensity, NFHS-4 against NFHS-5.</span>
-          <span class="cm">NITI Aayog · Per NFHS round</span>
-        </a>
-        </div>
-      </div>
-      <div class="group">
-        <h3><i class="dot" style="background:#A99AF5" aria-hidden="true"></i>Industry</h3>
-        <div class="cards">
-        <a class="card" href="/industry/" style="--cat:#A99AF5">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Industry <span class="new">New</span></span>
-          <span class="cd">Monthly industrial production by sector, industry and use, on both the new 2022-23 base and the 2011-12 base, plus the factory sector’s output, jobs, pay and investment by industry and state from the Annual Survey of Industries.</span>
-          <span class="cm">MoSPI IIP and ASI · Monthly and annual</span>
-        </a>
-        </div>
-      </div>
-      <div class="group">
-        <h3><i class="dot" style="background:#F7A873" aria-hidden="true"></i>Energy</h3>
-        <div class="cards">
-        <a class="card" href="/india-data-dashboard/dashboards/energy-flow/" style="--cat:#F7A873">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Energy balance and flows</span>
-          <span class="cd">India’s energy balance as flow diagrams: production, transformation and end use across all fuels.</span>
-          <span class="cm">MoSPI Energy Statistics · Annual</span>
-        </a>
-        <a class="card" href="/india-data-dashboard/dashboards/petroleum/" style="--cat:#F7A873">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Petroleum and refining</span>
-          <span class="cd">Crude production, refinery throughput and fuel consumption.</span>
-          <span class="cm">PPAC · Monthly</span>
-        </a>
-        </div>
-      </div>
-      <div class="group">
-        <h3><i class="dot" style="background:#8FE39A" aria-hidden="true"></i>Agriculture</h3>
-        <div class="cards">
-        <a class="card" href="/india-data-dashboard/dashboards/agriculture/" style="--cat:#8FE39A">
-          <span class="stripe" aria-hidden="true"></span>
-          <span class="ct">Agriculture and food security</span>
-          <span class="cd">Foodgrain output, crop trends, minimum support prices, FCI buffer stocks and monsoon rainfall, 2000-01 to 2024-25.</span>
-          <span class="cm">MoAFW, FCI, IMD · Annual</span>
-        </a>
-        </div>
-      </div>
-      </div>
+    <div class="sh"><h2 id="h-dash">Dashboards</h2></div>
+    <div class="cards two">
+      <a class="card feat" href="/industry/" style="--cat:#A99AF5">
+        <span class="stripe" aria-hidden="true"></span>
+        <span class="ct">Industry <span class="new">New</span></span>
+        <span class="cd">Monthly industrial production by sector, industry and use, plus the factory sector’s output, jobs, pay and investment by industry and state.</span>
+        <span class="cm">MoSPI IIP and Annual Survey of Industries · Monthly and annual</span>
+      </a>
+      <a class="card feat" href="/state-finances/" style="--cat:#6FD3EA">
+        <span class="stripe" aria-hidden="true"></span>
+        <span class="ct">State Finances Explorer</span>
+        <span class="cd">Budgets of 31 states and union territories from 1990-91 to 2025-26: receipts, spending, deficits and 355 budget heads, set against each state’s economy, with maps and state-by-state comparison.</span>
+        <span class="cm">RBI e-STATES, MoSPI · Annual</span>
+      </a>
+    </div>
+    <p class="more">More dashboards are being rebuilt and will appear here as they are ready.</p>
   </section>
 
   <section id="writing" aria-labelledby="h-writing">
@@ -304,7 +204,7 @@ footer a:hover{color:#fff}
     <nav aria-label="Elsewhere">
       <a href="https://indiaemerges.substack.com">Substack</a>
       <a href="https://github.com/indiaemerges">GitHub</a>
-      <a href="https://github.com/indiaemerges/india-data-dashboard/issues">Report a data issue</a>
+      <a href="https://github.com/indiaemerges/indiaemerges.github.io/issues">Report a data issue</a>
     </nav>
   </footer>
 </div>
