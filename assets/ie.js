@@ -138,6 +138,56 @@ IE.lineChart=function(el,o){
   ov.on('mousemove',move).on('touchstart',move,{passive:true}).on('touchmove',move,{passive:true}).on('mouseleave',()=>{rule.style('display','none');dots.selectAll('*').remove();IE.tip.hide();});
 };
 
+/* ---------- grouped bars over time, with optional overlaid lines (used for growth rates) ---------- */
+IE.barChart=function(el,o){
+  const L=o.labels,clean=s=>Object.assign({},s,{pts:s.pts.filter(p=>p[1]!=null&&isFinite(p[1]))});
+  const bars=(o.series||[]).map(clean).filter(s=>s.pts.length),lines=(o.lines||[]).map(clean).filter(s=>s.pts.length);
+  el.textContent='';if(!bars.length&&!lines.length)return empty(el,o.empty);
+  const all=bars.concat(lines).flatMap(s=>s.pts),a=d3.min(all,p=>p[0]),b=d3.max(all,p=>p[0]);
+  const W=el.clientWidth||600,Ht=o.height||(W>640?400:320),m={t:16,r:10,b:34,l:50};
+  const y=d3.scaleLinear().domain([Math.min(0,d3.min(all,p=>p[1])),Math.max(0,d3.max(all,p=>p[1]))]).nice(6).range([Ht-m.b,m.t]);
+  const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
+  const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(bars.length>1?.22:.18),xc=i=>x(i)+x.bandwidth()/2;
+  const xi=d3.scaleBand().domain(d3.range(Math.max(1,bars.length))).range([0,x.bandwidth()]).paddingInner(bars.length>1?.08:0);
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Bar chart');
+  yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step());
+  const bw=Math.max(1,xi.bandwidth()),rx=Math.min(2,bw/3);
+  bars.forEach((s,k)=>svg.append('g').selectAll('rect').data(s.pts).join('rect').attr('x',p=>x(p[0])+xi(k)).attr('width',bw)
+    .attr('y',p=>Math.min(y(0),y(p[1]))).attr('height',p=>Math.max(1,Math.abs(y(p[1])-y(0)))).attr('rx',rx).attr('fill',s.color));
+  svg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(0)).attr('y2',y(0)).attr('stroke','#fff').attr('stroke-opacity',.7);
+  const ln=d3.line().x(p=>xc(p[0])).y(p=>y(p[1]));
+  lines.forEach(s=>{const segs=[];let cur=[];s.pts.forEach((p,i)=>{if(i&&p[0]!==s.pts[i-1][0]+1){segs.push(cur);cur=[];}cur.push(p);});segs.push(cur);
+    segs.forEach(sg=>{if(sg.length>1)svg.append('path').attr('d',ln(sg)).attr('fill','none').attr('stroke',s.color).attr('stroke-width',2.5).attr('stroke-dasharray',s.dash||null).attr('stroke-linejoin','round');});
+    if(s.pts.length<=40)s.pts.forEach(p=>svg.append('circle').attr('cx',xc(p[0])).attr('cy',y(p[1])).attr('r',3.5).attr('fill',s.color).attr('stroke','#000').attr('stroke-width',1.5));});
+  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
+  edgeFix(xa,W);
+  const hl=svg.insert('rect',':first-child').attr('y',m.t).attr('height',Ht-m.t-m.b).attr('width',x.step()).attr('fill','#fff').attr('opacity',.1).style('display','none');
+  const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
+  function move(ev){const pt=d3.pointer(ev.touches?ev.touches[0]:ev,svg.node());const i=Math.max(a,Math.min(b,a+Math.floor((pt[0]-m.l)/x.step())));hl.style('display',null).attr('x',x(i)-x.step()*x.paddingInner()/2);
+    const row=(s,ln)=>{const p=s.pts.find(q=>q[0]===i);return p?'<div class="r"><span>'+IE.sw(s.color,ln)+esc(s.name)+'</span><b>'+IE.fmt(p[1],o.kind)+'</b></div>':'';};
+    IE.tip.show('<div class="t">'+esc(o.tipTitle?o.tipTitle(i):L[i])+'</div>'+bars.map(s=>row(s,0)).join('')+lines.map(s=>row(s,1)).join('')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);}
+  ov.on('mousemove',move).on('touchstart',move,{passive:true}).on('touchmove',move,{passive:true}).on('mouseleave',()=>{hl.style('display','none');IE.tip.hide();});
+};
+
+/* ---------- growth-rate chart with a Bars | Lines switch ----------
+   o.series are drawn as bars (grouped when several); o.lines stay lines in both modes.
+   The reader's choice is remembered across the site; until they choose, bars are used when they stay readable. */
+const GROWTH=[];
+IE.growthChart=function(host,o){
+  host.textContent='';const top=h('div',{class:'gc-top'}),plot=h('div');host.appendChild(top);host.appendChild(plot);
+  const rec={host,draw};GROWTH.push(rec);
+  function auto(){const ser=(o.series||[]).filter(s=>s.pts.some(p=>p[1]!=null));if(!ser.length)return 'lines';if(ser.length>3)return 'lines';
+    const idx=ser.flatMap(s=>s.pts.filter(p=>p[1]!=null).map(p=>p[0])),n=d3.max(idx)-d3.min(idx)+1,pw=(host.clientWidth||600)-60;return pw/(n*(ser.length+.3))>=2.5?'bars':'lines';}
+  function draw(){const style=IE.store.get('ie-growth-style',null)||auto();top.textContent='';
+    const lg=(style==='bars'?(o.series||[]).map(s=>({name:s.name,color:s.color,ln:0})):(o.series||[]).map(s=>({name:s.name,color:s.color,ln:1}))).concat((o.lines||[]).map(s=>({name:s.name,color:s.color,ln:1})));
+    const leg=h('div',{class:'legend',html:lg.length>1?lg.map(i=>'<span>'+IE.sw(i.color,i.ln)+esc(i.name)+'</span>').join(''):''});
+    const sw=IE.seg([['bars','Bars'],['lines','Lines']],style,v=>{IE.store.set('ie-growth-style',v);GROWTH.splice(0,GROWTH.length,...GROWTH.filter(r=>document.body.contains(r.host)));GROWTH.forEach(r=>r.draw());});
+    sw.classList.add('gc-switch');sw.setAttribute('aria-label','Show as bars or lines');top.appendChild(leg);top.appendChild(sw);
+    if(style==='bars')IE.barChart(plot,o);
+    else IE.lineChart(plot,Object.assign({},o,{endLabels:false,series:(o.series||[]).concat((o.lines||[]).map(s=>Object.assign({},s,{dash:s.dash||null})))}));}
+  draw();
+};
+
 /* ---------- column chart over time (one series; optional second series as a line) ---------- */
 IE.colChart=function(el,o){
   const L=o.labels,idx=d3.range(L.length).filter(i=>o.vals[i]!=null&&isFinite(o.vals[i]));el.textContent='';if(!idx.length)return empty(el,o.empty);

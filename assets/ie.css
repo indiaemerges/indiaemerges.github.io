@@ -57,6 +57,9 @@ h3{font-family:var(--disp);font-weight:600;font-size:22px;margin:0 0 6px;text-wr
 .legend span{display:inline-flex;align-items:center;gap:7px}
 .sw{width:14px;height:14px;border-radius:3px;display:inline-block;flex:none}
 .sw.ln{height:3px;border-radius:2px;width:20px}
+.gc-top{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:6px 14px;margin:2px 0 4px}
+.gc-top .legend{margin:6px 0 0;flex:1 1 240px}
+.gc-switch{flex:none}
 svg{display:block;max-width:100%;overflow:visible}
 svg text{fill:#fff;font-family:var(--body)}
 .axis text{font-size:14px;fill:rgba(255,255,255,.78)}

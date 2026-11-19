@@ -150,8 +150,8 @@ function vOverview(){
   const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
   { const c=card('Industrial production growth: 2022-23 and 2011-12 bases (% change on a year earlier)',true),b=h('div');
     const L=[...new Set(MONTHS[OLD].concat(MONTHS[CUR]))].sort();const S=[{name:'2022-23 base',short:'2022-23 base',color:PAL[0],pts:iipVals('gen',CUR,'m','g',L).map((v,i)=>[i,v])},{name:'2011-12 base',short:'2011-12 base',color:PAL[1],pts:iipVals('gen',OLD,'m','g',L).map((v,i)=>[i,v])}];
-    c.appendChild(IE.legend(S,1));c.appendChild(b);g.appendChild(c);
-    queue(()=>IE.lineChart(b,{labels:L.map(ymLab),series:S,kind:'pct',unit:'% change on the same month a year earlier',align:i=>+L[i].slice(0,4)*12+(+L[i].slice(5)-1),minStep:12,tickLabel:i=>L[i].slice(0,4),tipTitle:i=>ymLong(L[i]),label:'IIP growth'}));
+    c.appendChild(b);g.appendChild(c);
+    queue(()=>IE.growthChart(b,{labels:L.map(ymLab),series:S.slice(0,1),lines:S.slice(1),kind:'pct',unit:'% change on the same month a year earlier',align:i=>+L[i].slice(0,4)*12+(+L[i].slice(5)-1),minStep:12,tickLabel:i=>L[i].slice(0,4),tipTitle:i=>ymLong(L[i]),label:'IIP growth'}));
     foot(c,'MoSPI moved the index to a 2022-23 base in 2026; the two series overlap from April 2023 to March 2026. Growth rates are as published for each base. The 2020-21 collapse and 2021-22 rebound reflect the pandemic; MoSPI did not publish a growth rate for April 2021 on the old base.'); }
   { const c=card('Growth by use of goods, '+mon+' (% change on a year earlier)'),b=h('div');c.appendChild(b);g.appendChild(c);
     const ids=Object.values(CON).filter(x=>x.group==='By use'&&x.by[CUR]);
@@ -190,8 +190,8 @@ function vProd(){
   const c=card((meas==='g'?'Industrial production growth':'Index of Industrial Production')+(meas==='g'?' (% change on a year earlier)':' ('+base+' = 100)'),true),b=h('div');
   const S=st.p.cons.filter(avail).map(cid=>({name:CON[cid].name,color:pCol(cid),bold:cid==='gen',pts:iipVals(cid,base,st.p.freq,meas,L).map((v,i)=>[i,v]).filter(p=>p[0]>=st.p.a&&p[0]<=st.p.b)}));
   const lg=h('div');c.appendChild(lg);c.appendChild(b);main.appendChild(c);
-  IE.lineChart(b,{labels:L.map(m?ymLab:x=>x),series:S,kind,unit:meas==='g'?'% change on a year earlier, '+base+' base':'Index, '+base+' = 100',zero:meas==='g',align:m?(i=>+L[i].slice(0,4)*12+(+L[i].slice(5)-1)):(i=>+L[i].slice(0,4)),minStep:m&&st.p.b-st.p.a>48?12:1,tickLabel:m?(i=>st.p.b-st.p.a>48?L[i].slice(0,4):ymLab(L[i])):null,tipTitle:m?(i=>ymLong(L[i])):null,label:'IIP'});
-  if(b.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S.map(s=>({name:s.name,color:s.color})),1));
+  (meas==='g'?IE.growthChart:IE.lineChart)(b,{labels:L.map(m?ymLab:x=>x),series:S,kind,unit:meas==='g'?'% change on a year earlier, '+base+' base':'Index, '+base+' = 100',zero:meas==='g',align:m?(i=>+L[i].slice(0,4)*12+(+L[i].slice(5)-1)):(i=>+L[i].slice(0,4)),minStep:m&&st.p.b-st.p.a>48?12:1,tickLabel:m?(i=>st.p.b-st.p.a>48?L[i].slice(0,4):ymLab(L[i])):null,tipTitle:m?(i=>ymLong(L[i])):null,label:'IIP'});
+  if(meas!=='g'&&b.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S.map(s=>({name:s.name,color:s.color})),1));
   foot(c,'MoSPI Index of Industrial Production, '+BASES.find(x=>x.id===base).name+'. '+(m?'The latest month is a quick estimate, revised in later releases.':'Financial-year figures are MoSPI’s published annual indices.')+(missing.length?' Not available on this base: '+missing.map(x=>CON[x].name).join(', ')+'.':''));
   // ranking for the last period in the window
   const li=st.p.b,lab=m?ymLong(L[li]):L[li];
@@ -223,8 +223,8 @@ function vFac(){
   main.appendChild(h('div',{class:'row'},[IE.chips(st.f.sel.map(c=>({key:c,name:fname(c)})),k=>{st.f.sel=st.f.sel.filter(x=>x!==k);save();draw();},opts,v=>{st.f.sel.push(v);save();draw();},8,it=>fCol(it.key))]));
   const c=card(ANAME(ind)+' ('+unit.replace(/^% · .*/,'%')+')',true),lg=h('div'),b=h('div');c.appendChild(lg);c.appendChild(b);main.appendChild(c);
   const S=st.f.sel.map(k=>({name:fname(k),color:fCol(k),dash:k==='all'?'5 4':null,pts:d3.range(st.f.a,st.f.b+1).map(i=>[i,aval(ftarget(k),ind,i,m)])}));
-  IE.lineChart(b,{labels:AY,series:S,kind,unit,zero:true,align:i=>+AY[i].slice(0,4),label:ANAME(ind)});
-  if(b.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S.map(s=>({name:s.name,color:s.color})),1));
+  const gr=m==='g'||m==='gk';(gr?IE.growthChart:IE.lineChart)(b,{labels:AY,series:gr?S.filter(x=>x.name!=='All industries'):S,lines:gr?S.filter(x=>x.name==='All industries'):null,kind,unit,zero:true,align:i=>+AY[i].slice(0,4),label:ANAME(ind)});
+  if(!gr&&b.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S.map(s=>({name:s.name,color:s.color})),1));
   foot(c,'Annual Survey of Industries, NIC 2008 industry groups, all-India. '+(m==='real'||m==='gk'?'Deflated with the all-India GDP deflator (2011-12 = 100), which is a broad price index, not an industry-specific one. ':'')+(m==='share'?'Share of the all-industries total for India. ':'')+'Values are as published by MoSPI; ₹ lakh figures are shown in ₹ crore. The survey year runs April to March.');
   const yi=st.f.b,g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
   { const cc=card('Industries ranked, '+AY[yi]+': '+ANAME(ind)+' ('+(m==='raw'&&!DERIVED[ind]?'% of all industries':unit.replace(/^% · .*/,'%'))+')'),bb=h('div');cc.appendChild(bb);g.appendChild(cc);
