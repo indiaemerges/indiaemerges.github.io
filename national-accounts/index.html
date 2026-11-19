@@ -156,7 +156,7 @@ function vOverview(){
     const P=[...new Set(per('q','b11').concat(Pq))].sort();
     const mk=(bb,nm,col)=>({name:nm,short:nm,color:col,pts:P.map((p,i)=>{const j=pidx('q',bb)[p];return [i,j==null?null:val('q',bb,'gdp','g',j)];})});
     const S=[mk('b22','2022-23 base','#6FD3EA')],SL=[mk('b11','2011-12 base','#F3E67C')];
-    queue(()=>IE.growthChart(b,Object.assign({labels:P.map(pLab),series:S,lines:SL,kind:'pct',unit:'% change on the same quarter a year earlier, constant prices',label:'Quarterly real GDP growth'},axisOpts(P,0,P.length-1))));
+    queue(()=>IE.growthChart(b,Object.assign({labels:P.map(pLab),series:S.concat(SL),kind:'pct',unit:'% change on the same quarter a year earlier, constant prices',label:'Quarterly real GDP growth'},axisOpts(P,0,P.length-1))));
     foot(c,'MoSPI moved the national accounts to a 2022-23 base in 2026. The two series overlap from '+qLab(Pq[4])+' to '+qLab(per('q','b11').slice(-1)[0])+'. They are not spliced: the new base measures some activities differently. The 2020-21 swings reflect the pandemic lockdowns.'); }
   { const c=card('Real GVA growth by sector, '+qLab(LQ)+' (% change on a year earlier)'),b=h('div');c.appendChild(b);g.appendChild(c);
     queue(()=>IE.rankBars(b,{items:SECT.map(([k,n,s,col])=>({name:NB(n,s),full:n,v:val('q','b22','gva.'+k,'g',qi),color:col,k})).concat([{name:'All sectors (total GVA)',v:val('q','b22','gva','g',qi),color:'#fff',hl:true}]),kind:'pct',vname:qLab(LQ),unit:'% change on a year earlier, constant 2022-23 prices',rh:27,lw:Math.min(300,b.clientWidth*.55),onClick:d=>{if(!d.k)return;st.s.sel=['gva','gva.'+d.k];st.s.base='b22';st.s.freq='q';st.s.meas='g';save();R.go('sectors');}}));
@@ -178,7 +178,7 @@ function vGrowth(){
   const s=st.g,fr=s.freq,b=s.base,P=per(fr,b),ax=axisOpts(P,s.a,s.b),rng=i=>i>=s.a&&i<=s.b;
   const c=card('GDP growth: real, nominal and prices (% change on a year earlier)',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
   const S=[['g','Real GDP growth','#6FD3EA','Real growth'],['gn','Nominal GDP growth','#F3E67C','Nominal growth'],['infl','GDP deflator inflation','#F590C6','Deflator inflation']].map(([m,n,col,sh])=>({name:n,short:sh,color:col,bold:m==='g',pts:P.map((p,i)=>[i,rng(i)?val(fr,b,'gdp',m,i):null])}));
-  IE.growthChart(bb,Object.assign({labels:P.map(pLab),series:S.slice(0,1),lines:S.slice(1),kind:'pct',unit:'% change on the same '+fqName(fr)+' a year earlier',label:'GDP growth'},ax));
+  IE.growthChart(bb,Object.assign({labels:P.map(pLab),series:S,kind:'pct',unit:'% change on the same '+fqName(fr)+' a year earlier',label:'GDP growth'},ax));
   foot(c,BASES[b].name+'. Nominal growth is real growth plus the change in prices, measured by the GDP deflator (current-price GDP divided by constant-price GDP). '+(fr==='q'?'Quarterly growth compares a quarter with the same quarter a year earlier.':''));
   const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
   { const cc=card('GDP, current and constant prices (₹ crore)'),l2=h('div'),b2=h('div');cc.appendChild(l2);cc.appendChild(b2);g.appendChild(cc);
@@ -219,10 +219,10 @@ function vSect(){
     main.appendChild(h('div',{class:'row'},[IE.chips(s.sel.map(id=>({key:id,name:id==='gva'?'Total GVA':nameOf(id)})),k=>{s.sel=s.sel.filter(x=>x!==k);save();draw();},opts,v=>{s.sel.push(v);save();draw();},8,it=>sCol(it.key))]));
     const c=card(MEAS[m].name+' by sector ('+unit+')',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
     const S=s.sel.filter(id=>has(fr,b,id)).map(id=>({name:id==='gva'?'Total GVA':nameOf(id),short:id==='gva'?'Total GVA':(SECT.find(x=>'gva.'+x[0]===id)||[0,0,null])[2]||nameOf(id),color:sCol(id),dash:id==='gva'?'5 4':null,bold:id==='gva',pts:P.map((p,i)=>[i,rng(i)?val(fr,b,id,m,i):null])}));
-    if(m==='g'||m==='infl')IE.growthChart(bb,Object.assign({labels:P.map(pLab),series:S.filter(x=>x.name!=='Total GVA'),lines:S.filter(x=>x.name==='Total GVA'),kind,unit,label:'GVA by sector'},ax));
+    if(m==='g'||m==='infl')IE.growthChart(bb,Object.assign({labels:P.map(pLab),series:S,kind,unit,label:'GVA by sector'},ax));
     else{IE.lineChart(bb,Object.assign({labels:P.map(pLab),series:S,kind,unit,label:'GVA by sector'},ax));if(bb.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S,1));}
     const miss=s.sel.filter(id=>!has(fr,b,id));
-    foot(c,BASES[b].name+'. '+(m==='g'||m==='infl'?'The white line is total GVA. ':'The dashed white line is total GVA. ')+(miss.length?'Not published at this frequency or on this base: '+miss.map(nameOf).join(', ')+'. ':'')+'Growth rates are calculated from MoSPI’s published levels.');
+    foot(c,BASES[b].name+'. '+(m==='g'||m==='infl'?'White is total GVA. ':'The dashed white line is total GVA. ')+(miss.length?'Not published at this frequency or on this base: '+miss.map(nameOf).join(', ')+'. ':'')+'Growth rates are calculated from MoSPI’s published levels.');
   }
   const li=s.b,lab=pLab(P[li]);
   const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
@@ -255,9 +255,9 @@ function vDem(){
   }else{
     const c=card(MEAS[m].name+' by type of spending ('+unit+')',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
     const S=[{name:'GDP',color:'#FFFFFF',dash:'5 4',bold:true,pts:P.map((p,i)=>[i,rng(i)?val(fr,b,'gdp',m,i):null])}].concat(DEM.filter(x=>x[0]!=='cis'||m!=='g'&&m!=='infl').map(([k,n,col])=>({name:n,color:col,pts:P.map((p,i)=>[i,rng(i)?val(fr,b,k,m,i):null])})));
-    if(m==='g'||m==='infl')IE.growthChart(bb,Object.assign({labels:P.map(pLab),series:S.slice(1),lines:S.slice(0,1),kind,unit,label:'GDP by expenditure'},ax));
+    if(m==='g'||m==='infl')IE.growthChart(bb,Object.assign({labels:P.map(pLab),series:S,kind,unit,label:'GDP by expenditure'},ax));
     else{lg.appendChild(IE.legend(S,1));IE.lineChart(bb,Object.assign({labels:P.map(pLab),series:S,kind,unit,endLabels:false,label:'GDP by expenditure'},ax));}
-    foot(c,BASES[b].name+'. '+(m==='g'||m==='infl'?'The white line is GDP. ':'The dashed white line is GDP. ')+(m==='g'||m==='infl'?'Change in stocks is left out: it swings between positive and negative, so its growth rate is not meaningful. ':'')+'Calculated from MoSPI’s published levels.');
+    foot(c,BASES[b].name+'. '+(m==='g'||m==='infl'?'White is GDP. ':'The dashed white line is GDP. ')+(m==='g'||m==='infl'?'Change in stocks is left out: it swings between positive and negative, so its growth rate is not meaningful. ':'')+'Calculated from MoSPI’s published levels.');
   }
   const li=s.b,lab=pLab(P[li]);
   const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);

@@ -185,21 +185,21 @@ IE.barChart=function(el,o){
 };
 
 /* ---------- growth-rate chart with a Bars | Lines switch ----------
-   o.series are drawn as bars (grouped when several); o.lines stay lines in both modes.
-   The reader's choice is remembered across the site; until they choose, bars are used when they stay readable. */
+   Every series on the chart (o.series, then o.lines) is drawn as bars or as lines, as the reader chooses.
+   The choice is remembered across the site; until the reader chooses, bars are used when they stay readable. */
 const GROWTH=[];
 IE.growthChart=function(host,o){
   host.textContent='';const top=h('div',{class:'gc-top'}),plot=h('div');host.appendChild(top);host.appendChild(plot);
+  const all=(o.series||[]).concat(o.lines||[]).filter(s=>s.pts.some(p=>p[1]!=null&&isFinite(p[1])));
   const rec={host,draw};GROWTH.push(rec);
-  function auto(){const ser=(o.series||[]).filter(s=>s.pts.some(p=>p[1]!=null));if(!ser.length)return 'lines';if(ser.length>3)return 'lines';
-    const idx=ser.flatMap(s=>s.pts.filter(p=>p[1]!=null).map(p=>p[0])),n=d3.max(idx)-d3.min(idx)+1,pw=(host.clientWidth||600)-60;return pw/(n*(ser.length+.3))>=2.5?'bars':'lines';}
-  function draw(){const style=IE.store.get('ie-growth-style',null)||auto();top.textContent='';
-    const lg=(style==='bars'?(o.series||[]).map(s=>({name:s.name,color:s.color,ln:0})):(o.series||[]).map(s=>({name:s.name,color:s.color,ln:1}))).concat((o.lines||[]).map(s=>({name:s.name,color:s.color,ln:1})));
-    const leg=h('div',{class:'legend',html:lg.length>1?lg.map(i=>'<span>'+IE.sw(i.color,i.ln)+esc(i.name)+'</span>').join(''):''});
+  function auto(){if(!all.length||all.length>3)return 'lines';
+    const idx=all.flatMap(s=>s.pts.filter(p=>p[1]!=null).map(p=>p[0])),n=d3.max(idx)-d3.min(idx)+1,pw=(host.clientWidth||600)-60;return pw/(n*(all.length+.3))>=2.5?'bars':'lines';}
+  function draw(){const style=IE.store.get('ie-growth-style',null)||auto(),bars=style==='bars';top.textContent='';
+    const leg=h('div',{class:'legend',html:all.length>1?all.map(s=>'<span>'+IE.sw(s.color,!bars)+esc(s.name)+'</span>').join(''):''});
     const sw=IE.seg([['bars','Bars'],['lines','Lines']],style,v=>{IE.store.set('ie-growth-style',v);GROWTH.splice(0,GROWTH.length,...GROWTH.filter(r=>document.body.contains(r.host)));GROWTH.forEach(r=>r.draw());});
     sw.classList.add('gc-switch');sw.setAttribute('aria-label','Show as bars or lines');top.appendChild(leg);top.appendChild(sw);
-    if(style==='bars')IE.barChart(plot,o);
-    else IE.lineChart(plot,Object.assign({},o,{endLabels:false,series:(o.series||[]).concat((o.lines||[]).map(s=>Object.assign({},s,{dash:s.dash||null})))}));}
+    if(bars)IE.barChart(plot,Object.assign({},o,{series:all,lines:null}));
+    else IE.lineChart(plot,Object.assign({},o,{endLabels:false,series:all}));}
   draw();
 };
 

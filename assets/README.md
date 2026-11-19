@@ -48,7 +48,7 @@ All time charts take `labels` (one per period), points as `[index, value]`, `kin
 | Function | Use |
 |---|---|
 | `IE.lineChart(el, {series, …})` | Levels and shares over time. `series: [{name, short, color, pts, dash, bold}]`. |
-| `IE.growthChart(el, {series, lines, …})` | Any growth rate. Adds a Bars, Lines switch, remembered across the site. `series` become bars, `lines` stay lines in both modes. |
+| `IE.growthChart(el, {series, …})` | Any growth rate. Adds a Bars, Lines switch, remembered across the site; every series is drawn as bars or as lines. |
 | `IE.barChart(el, {series, lines, …})` | Grouped bars with optional lines on top. |
 | `IE.colChart(el, {vals, …})` | One series of columns. |
 | `IE.stackChart(el, {keys, line, …})` | Stacked columns, negatives below zero; optional white line (e.g. total growth). |
