@@ -24,6 +24,7 @@
 #tip .t{font-weight:600;margin-bottom:3px}
 #tip .r{display:flex;justify-content:space-between;gap:16px;font-variant-numeric:tabular-nums}
 #tip .r span:first-child{display:inline-flex;gap:7px;align-items:center}
+#tip .r b{white-space:nowrap}
 #tip .m{color:rgba(255,255,255,.72);font-size:13px;margin-top:4px}
 .cod-int .dual{position:relative;width:min(420px,78vw);height:30px}
 .cod-int .dual .trk{position:absolute;left:10px;right:10px;top:13px;height:4px;border-radius:2px;background:#444}

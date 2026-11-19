@@ -42,10 +42,17 @@ IE.legend=function(items,ln){return h('div',{class:'legend',html:items.map(i=>'<
 
 /* ---------- tooltip ---------- */
 let tipEl=null;
-IE.tip={show(html,ev){if(!tipEl){tipEl=document.getElementById('tip')||document.body.appendChild(h('div',{id:'tip',role:'status'}));}
+IE.tip={show(html,ev){if(ev&&ev.touches){if(Date.now()-tipScroll<400)return;clearTimeout(tipTimer);}if(!tipEl){tipEl=document.getElementById('tip')||document.body.appendChild(h('div',{id:'tip',role:'status'}));}
   tipEl.innerHTML=html;tipEl.style.display='block';const p=ev.touches?ev.touches[0]:ev;const w=tipEl.offsetWidth,hh=tipEl.offsetHeight;
   let x=p.clientX+16,y=p.clientY+16;if(x+w>innerWidth-8)x=p.clientX-w-16;if(x<8)x=8;if(y+hh>innerHeight-8)y=p.clientY-hh-16;if(y<8)y=8;tipEl.style.left=x+'px';tipEl.style.top=y+'px';},
   hide(){if(tipEl)tipEl.style.display='none';}};
+/* touch screens have no mouseleave: hide the card when the page scrolls, when the reader taps elsewhere,
+   and a few seconds after they lift their finger */
+let tipScroll=0,tipTimer=null;
+function tipClear(){if(!tipEl||tipEl.style.display==='none')return;IE.tip.hide();document.querySelectorAll('svg rect[fill="transparent"]').forEach(r=>r.dispatchEvent(new Event('mouseleave')));}
+addEventListener('scroll',()=>{tipScroll=Date.now();tipClear();},{passive:true});
+document.addEventListener('touchstart',e=>{clearTimeout(tipTimer);if(!(e.target.closest&&e.target.closest('svg')))tipClear();},{passive:true});
+document.addEventListener('touchend',()=>{clearTimeout(tipTimer);tipTimer=setTimeout(tipClear,3000);},{passive:true});
 
 /* ---------- controls ---------- */
 let uid=0;
