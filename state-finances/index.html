@@ -8,91 +8,17 @@
 <link rel="canonical" href="https://indiaemerges.com/state-finances/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/ie.css">
 <style>
-/* indiaemerges system: black ground, white type, pastel CMY used only to tell categories apart.
-   Layout: sticky control bar on top, one working view below, charts full width. */
-:root{
-  --bg:#000; --panel:#0e0e0e; --line:#2a2a2a; --line2:#444; --ink:#fff; --ink2:rgba(255,255,255,.72); --ink3:rgba(255,255,255,.5);
-  --cyan:#6FD3EA; --yellow:#F3E67C; --magenta:#F590C6; --violet:#A99AF5; --green:#8FE39A; --orange:#F7A873; --grey:#8E949A;
-  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --disp:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
-  color-scheme:dark;
-}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45}
-.wrap{max-width:1360px;margin:0 auto;padding:0 20px 80px}
-header.top{padding:22px 0 8px}
-.home{display:inline-block;font-family:var(--disp);font-weight:600;font-size:19px;text-decoration:none;color:#fff;margin-bottom:14px}
-.home .em{color:var(--ink2);font-weight:500}
-.fl{background:linear-gradient(to bottom,#FF9933 0 55%,#fff 55% 68%,#138808 68%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#FF9933}
-
-.home:hover{text-decoration:underline;text-underline-offset:3px}
-.sitefoot{border-top:1px solid var(--line);margin-top:40px;padding-top:18px;color:var(--ink3);font-size:15px}
-.sitefoot a{color:var(--ink2)}
-h1{font-family:var(--disp);font-weight:600;font-size:clamp(30px,4.4vw,46px);line-height:1.05;margin:0;letter-spacing:.2px;text-wrap:balance}
-.sub{color:var(--ink2);margin:8px 0 0;max-width:70ch}
-nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 0}
-nav.tabs a{color:var(--ink);text-decoration:none;padding:8px 14px;border:1px solid var(--line2);border-radius:999px;font-size:16px;font-weight:500}
-nav.tabs a[aria-current="page"]{background:#fff;color:#000;border-color:#fff}
-nav.tabs a:hover{border-color:#fff}
-.bar{background:#000;border-bottom:1px solid var(--line);margin:14px -20px 0;padding:12px 20px;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end}
-.ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
-.ctl>label,.lab{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
-select,button,input[type=search]{font:inherit;color:var(--ink);background:#000;border:1px solid var(--line2);border-radius:8px;padding:8px 12px;max-width:100%}
-select{padding-right:28px}
-button{cursor:pointer}
-button:hover,select:hover{border-color:#fff}
-:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* page-specific: indicator picker, the all-indicators table, picker button */
 button.pick{text-align:left;min-width:240px;max-width:520px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 button.pick::after{content:" ▾";color:var(--ink2)}
-button.sm{padding:5px 10px;font-size:15px}
-input[type=range]{width:min(360px,60vw);accent-color:#fff}
-.yearval{font-family:var(--disp);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
-.tag{display:inline-block;border:1px solid var(--line2);border-radius:6px;padding:0 7px;font-size:13px;color:var(--ink2);margin-left:8px;vertical-align:middle}
-main{padding-top:22px}
-h2{font-family:var(--disp);font-weight:600;font-size:28px;margin:0 0 4px;text-wrap:balance}
-h3{font-family:var(--disp);font-weight:600;font-size:22px;margin:0 0 2px;text-wrap:balance}
-.note{color:var(--ink2);font-size:15px;margin:2px 0 10px;max-width:90ch}
-.grid{display:grid;gap:18px}
-.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr))}
-.card{border:1px solid var(--line);border-radius:12px;padding:18px 18px 12px;background:var(--panel);min-width:0}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0 20px}
-.tile{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel)}
-.tile .k{font-size:15px;color:var(--ink2);min-height:2.9em}
-.tile .v{font-family:var(--disp);font-size:36px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
-.tile .u{font-size:14px;color:var(--ink2)}
-.tile .b{font-size:14px;color:var(--ink2);margin-top:4px}
-.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:6px 0 4px;font-size:15px}
-.legend span{display:inline-flex;align-items:center;gap:7px}
-.sw{width:14px;height:14px;border-radius:3px;display:inline-block;flex:none}
-.sw.ln{height:3px;border-radius:2px;width:20px}
-svg{display:block;max-width:100%;overflow:visible}
-svg text{fill:#fff;font-family:var(--body)}
-.axis text{font-size:14px;fill:rgba(255,255,255,.78)}
-.axis path,.axis line{stroke:var(--line2)}
-.gridl line{stroke:#232323}
-.gridl path{display:none}
-#tip{position:fixed;z-index:60;pointer-events:none;background:#000;border:1px solid #fff;border-radius:8px;padding:9px 12px;font-size:15px;max-width:min(380px,86vw);display:none;box-shadow:0 6px 24px rgba(0,0,0,.7)}
-#tip .t{font-weight:600;margin-bottom:3px}
-#tip .r{display:flex;justify-content:space-between;gap:16px;font-variant-numeric:tabular-nums}
-#tip .r span:first-child{display:inline-flex;gap:7px;align-items:center}
-#tip .m{color:var(--ink2);font-size:13px;margin-top:4px}
-.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line2);border-radius:999px;padding:4px 6px 4px 12px;font-size:15px}
-.chip button{border:0;padding:0 7px;font-size:18px;line-height:1;background:none;color:var(--ink2)}
-.chip button:hover{color:#fff}
-.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;max-height:72vh;overflow-y:auto}
-table{border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums;width:max-content;min-width:100%}
-th,td{padding:6px 10px;border-bottom:1px solid #1d1d1d;text-align:right;white-space:nowrap}
-thead th{position:sticky;top:0;background:#000;font-weight:600;border-bottom:1px solid var(--line2);z-index:2}
-th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:#000;z-index:1;max-width:min(440px,62vw);white-space:normal}
-thead th:first-child{z-index:3}
 td.h{font-weight:600;color:var(--ink2);text-transform:uppercase;font-size:13px;letter-spacing:.06em}
 td .code{color:var(--ink3);font-size:13px;margin-right:6px}
 td .tw{background:none;border:0;padding:0 6px 0 0;color:var(--ink2);width:22px}
 td a.il{color:#fff;text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:3px;cursor:pointer}
 td a.il:hover{text-decoration-color:#fff}
 sup.est{color:var(--ink2);font-size:11px;margin-left:2px}
-.est-note{font-size:14px;color:var(--ink2)}
 #picker{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.8);display:none;padding:4vh 16px}
 #picker .box{max-width:780px;margin:0 auto;background:#000;border:1px solid #fff;border-radius:14px;height:92vh;display:flex;flex-direction:column}
 #picker .hd{padding:14px;border-bottom:1px solid var(--line);display:flex;gap:10px}
@@ -105,27 +31,8 @@ sup.est{color:var(--ink2);font-size:11px;margin-left:2px}
 #picker .it:hover,#picker .it.cur{background:#1c1c1c}
 #picker .it.cur{outline:1px solid #fff}
 #picker .it small{color:var(--ink3);display:block;font-size:13px}
-.methods{max-width:78ch}
-.methods h3{margin-top:26px}
-.methods li{margin:6px 0}
 .methods a{color:#fff}
-.row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:end;margin:0 0 14px}
-.empty{color:var(--ink2);padding:30px 0}
-.maprow{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px}
-.dual{position:relative;width:min(440px,72vw);height:30px}
-.dual .trk{position:absolute;left:10px;right:10px;top:13px;height:4px;border-radius:2px;background:var(--line2)}
-.dual .fil{position:absolute;top:0;bottom:0;background:#fff;border-radius:2px}
-.dual input[type=range]{position:absolute;left:0;top:0;width:100%;height:30px;margin:0;padding:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
-.dual input[type=range]::-webkit-slider-runnable-track{background:none;height:30px}
-.dual input[type=range]::-moz-range-track{background:none}
-.dual input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;width:20px;height:20px;margin-top:5px;border-radius:50%;background:#fff;border:2px solid #000;box-shadow:0 0 0 1px #fff;cursor:grab}
-.dual input[type=range]::-moz-range-thumb{pointer-events:auto;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #000;box-shadow:0 0 0 1px #fff;cursor:grab}
-.dual input[type=range]:focus-visible{outline:none}
-.dual input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px #fff}
-.dual input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px #fff}
-@media (max-width:900px){.maprow{grid-template-columns:1fr}}
-@media (max-width:520px){html,body{font-size:16px}.wrap{padding:0 16px 60px}.bar{margin:14px -16px 0;padding:10px 16px}.tile .v{font-size:30px}button.pick{min-width:0;width:100%}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:520px){button.pick{min-width:0;width:100%}}
 </style>
 </head>
 <body>
@@ -145,13 +52,14 @@ sup.est{color:var(--ink2);font-size:11px;margin-left:2px}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="/assets/ie.js"></script>
+<script src="/assets/india-geo.js"></script>
 <script src="data.js"></script>
-<script src="geo.js"></script>
 <script>
 (function(){
 "use strict";
 const SF=window.SF, M=SF.meta, STATES=M.states, YEARS=M.years, NY=YEARS.length, NS=STATES.length;
-const PAL=['#6FD3EA','#F3E67C','#F590C6','#A99AF5','#8FE39A','#FFFFFF','#F7A873','#8E949A'];
+const {h,esc,fmt,PAL,sw,legend,ctl,sel}=IE,IN=IE.IN,tip=IE.tip;
 const ABB={'All States/UT':'ALL','Andhra Pradesh':'AP','Arunachal Pradesh':'AR','Assam':'AS','Bihar':'BR','Chhattisgarh':'CG','Goa':'GA','Gujarat':'GJ','Haryana':'HR','Himachal Pradesh':'HP','Jammu and Kashmir':'JK','Jharkhand':'JH','Karnataka':'KA','Kerala':'KL','Madhya Pradesh':'MP','Maharashtra':'MH','Manipur':'MN','Meghalaya':'ML','Mizoram':'MZ','NCT Delhi':'DL','Nagaland':'NL','Odisha':'OD','Puducherry':'PY','Punjab':'PB','Rajasthan':'RJ','Sikkim':'SK','Tamil Nadu':'TN','Telangana':'TS','Tripura':'TR','Uttar Pradesh':'UP','Uttarakhand':'UK','West Bengal':'WB'};
 const SNAME=s=>s==='All States/UT'?'All states and UTs':s;
 
@@ -183,8 +91,8 @@ const UNITS=[
 const UNIT={}; UNITS.forEach(u=>UNIT[u.id]=u);
 const FIXED={pct:'% a year',idx:'index, 2011-12 = 100',rs:'₹ per person, current prices',pop:'people',crfix:'₹ crore, constant 2011-12 prices'};
 const RRID='K1',TXID=M.ids.tx,GID='X1',POPID='X8';
-const st={view:'profile',state:'All States/UT',states:['All States/UT','Maharashtra','Uttar Pradesh','Tamil Nadu','Bihar','Kerala'],ind:K('Gross fiscal deficit'),unit:'gsdp',defl:'nat',yi:YEARS.indexOf('2023-24'),
-  y0:0,y1:YEARS.length-1,sx:'X6',sxu:'cr',sy:K("State's own tax revenue"),syu:'gsdp',bgroup:'K',bopen:{},bq:'',playing:false};
+const st={state:'All States/UT',states:['All States/UT','Maharashtra','Uttar Pradesh','Tamil Nadu','Bihar','Kerala'],ind:K('Gross fiscal deficit'),unit:'gsdp',defl:'nat',yi:YEARS.indexOf('2023-24'),
+  y0:0,y1:YEARS.length-1,sx:'X6',sxu:'cr',sy:K("State's own tax revenue"),syu:'gsdp',bgroup:'K',bopen:{},bq:''};
 try{const s=JSON.parse(localStorage.getItem('sfx1')||'null');if(s){['state','states','ind','unit','defl','yi','y0','y1','sx','sxu','sy','syu','bgroup'].forEach(k=>{if(s[k]!=null)st[k]=s[k];});}}catch(e){}
 if(!IND[st.ind])st.ind=K('Gross fiscal deficit'); if(!IND[st.sx])st.sx='X6'; if(!IND[st.sy])st.sy=K("State's own tax revenue");
 st.y0=Math.max(0,Math.min(NY-2,+st.y0||0));st.y1=Math.max(st.y0+1,Math.min(NY-1,st.y1==null?NY-1:+st.y1));
@@ -211,59 +119,19 @@ function val(id,si,yi,u){
   }
   return null;
 }
-function kindOf(id,u){const f=IND[id].unit;if(f&&f!=='cr')return f==='crfix'?'cr':f;return {cr:'cr',crk:'cr',pc:'rs',pck:'rs'}[u]||'pct';}
+function kindOf(id,u){const f=IND[id].unit;if(f&&f!=='cr')return f==='crfix'?'cr':f==='pct'?'pct2':f;return {cr:'cr',crk:'cr',pc:'rs',pck:'rs'}[u]||'pct2';}
 function unitText(id,u){const f=IND[id].unit;if(f&&f!=='cr')return FIXED[f];if(u==='gsdp'&&id===GID)return '% of GSDP';return UNIT[u].label;}
 const isDiv=(id,u)=>IND[id].kind==='bal'||u==='g'||u==='gk'||id==='X3';
 const usesDefl=u=>u==='crk'||u==='pck'||u==='gk';
-const IN=n=>n.toLocaleString('en-IN',{maximumFractionDigits:0});
-function fmt(v,kind){
-  if(v==null||!isFinite(v))return 'n/a';
-  const a=Math.abs(v);
-  if(kind==='pct')return (a>=100?v.toFixed(0):a>=10?v.toFixed(1):v.toFixed(2))+'%';
-  if(kind==='idx')return v.toFixed(1);
-  if(kind==='rs')return '₹'+IN(Math.round(v));
-  if(kind==='pop')return a>=1e7?(v/1e7).toFixed(2)+' crore':(v/1e5).toFixed(1)+' lakh';
-  return a>=1e5?'₹'+(v/1e5).toFixed(2)+' lakh cr':a>=100?'₹'+IN(Math.round(v))+' cr':'₹'+v.toFixed(2)+' cr';
-}
-function tickFmt(kind,max){
-  if(kind==='pct')return v=>d3.format(max<5?'.1f':'.0f')(v)+'%';
-  if(kind==='idx')return d3.format('.0f');
-  if(kind==='rs')return v=>max>=2e5?'₹'+d3.format('.1f')(v/1e5)+' lakh':'₹'+IN(v);
-  if(kind==='pop')return v=>d3.format('.0f')(v/1e7)+' cr';
-  return v=>max>=2e5?'₹'+d3.format(max<1e6?'.1f':'.0f')(v/1e5)+'L cr':'₹'+IN(v)+' cr';
-}
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const BASISNAME={A:'Accounts',R:'Revised estimates',B:'Budget estimates'};
 const estTag=yi=>M.basis[yi]==='A'?'':(M.basis[yi]==='R'?'RE':'BE');
 
-/* ---------- dom helpers ---------- */
-function h(tag,attrs,kidsArr){const e=document.createElement(tag);if(attrs)for(const k in attrs){const v=attrs[k];if(k==='text')e.textContent=v;else if(k==='html')e.innerHTML=v;else if(k.slice(0,2)==='on')e.addEventListener(k.slice(2),v);else if(v!==false&&v!=null)e.setAttribute(k,v);}
-  (kidsArr||[]).forEach(c=>{if(c)e.appendChild(typeof c==='string'?document.createTextNode(c):c);});return e;}
-const tipEl=document.getElementById('tip');
-const tip={show(html,ev){tipEl.innerHTML=html;tipEl.style.display='block';const p=ev.touches?ev.touches[0]:ev;const w=tipEl.offsetWidth,hh=tipEl.offsetHeight;let x=p.clientX+16,y=p.clientY+16;if(x+w>innerWidth-8)x=p.clientX-w-16;if(x<8)x=8;if(y+hh>innerHeight-8)y=p.clientY-hh-16;if(y<8)y=8;tipEl.style.left=x+'px';tipEl.style.top=y+'px';},hide(){tipEl.style.display='none';}};
-const sw=(c,ln)=>'<i class="sw'+(ln?' ln':'')+'" style="background:'+c+'"></i>';
-function legend(items,ln){return h('div',{class:'legend',html:items.map(i=>'<span>'+sw(i.color,ln)+esc(i.name)+'</span>').join('')});}
-function ctl(label,el){const id='c'+Math.random().toString(36).slice(2,8);if(!el.id)el.id=id;return h('div',{class:'ctl'},[h('label',{for:el.id,text:label}),el]);}
-function sel(opts,cur,on){const s=h('select',{onchange:e=>on(e.target.value)});opts.forEach(o=>{const op=h('option',{value:o[0],text:o[1]});if(o[0]===cur)op.selected=true;s.appendChild(op);});return s;}
+/* ---------- controls ---------- */
 const stateSel=(cur,on,skipAll)=>sel(STATES.filter(s=>!skipAll||s!=='All States/UT').map(s=>[s,SNAME(s)]),cur,on);
 const unitSel=(cur,on)=>sel(UNITS.map(u=>[u.id,u.label]),cur,on);
 function pickBtn(id,on){const d=IND[id];return h('button',{class:'pick',title:pathOf(d)+' › '+d.name,text:d.name,onclick:()=>openPicker(id,on)});}
-function yearCtl(){
-  const lab=h('span',{class:'yearval',text:YEARS[st.yi]});const tg=h('span',{class:'tag',text:BASISNAME[M.basis[st.yi]]});
-  const r=h('input',{type:'range',min:0,max:NY-1,step:1,value:st.yi,'aria-label':'Year',oninput:e=>{st.yi=+e.target.value;lab.textContent=YEARS[st.yi];tg.textContent=BASISNAME[M.basis[st.yi]];save();renderMain();}});
-  r.id='yr';return h('div',{class:'ctl'},[h('label',{for:'yr',text:'Year'}),h('div',{style:'display:flex;align-items:center;gap:12px;flex-wrap:wrap'},[r,h('span',null,[lab,tg])])]);
-}
-
-function rangeCtl(){
-  const lab=h('span',{class:'yearval'}),fil=h('div',{class:'fil'});
-  const a=h('input',{type:'range',min:0,max:NY-1,step:1,value:st.y0,'aria-label':'First year'}),b=h('input',{type:'range',min:0,max:NY-1,step:1,value:st.y1,'aria-label':'Last year'});a.id='yr0';
-  const all=h('button',{class:'sm',text:'All years',onclick:()=>{st.y0=0;st.y1=NY-1;a.value=0;b.value=NY-1;paint();save();renderMain();}});
-  function paint(){lab.textContent=YEARS[st.y0]+' to '+YEARS[st.y1];fil.style.left=(st.y0/(NY-1)*100)+'%';fil.style.right=((1-st.y1/(NY-1))*100)+'%';a.style.zIndex=st.y0>NY/2?3:2;b.style.zIndex=st.y0>NY/2?2:3;all.disabled=st.y0===0&&st.y1===NY-1;all.style.opacity=all.disabled?.45:1;}
-  a.addEventListener('input',()=>{let v=+a.value;if(v>st.y1-1){v=st.y1-1;a.value=v;}st.y0=v;paint();save();renderMain();});
-  b.addEventListener('input',()=>{let v=+b.value;if(v<st.y0+1){v=st.y0+1;b.value=v;}st.y1=v;paint();save();renderMain();});
-  paint();
-  return h('div',{class:'ctl'},[h('label',{for:'yr0',text:'Years shown'}),h('div',{style:'display:flex;align-items:center;gap:12px;flex-wrap:wrap'},[h('div',{class:'dual'},[h('div',{class:'trk'},[fil]),a,b]),lab,all])]);
-}
+const yearCtl=play=>IE.yearCtl(YEARS,st.yi,i=>{st.yi=i;save();renderMain();},i=>BASISNAME[M.basis[i]],{play});
+const rangeCtl=()=>IE.rangeCtl(YEARS,st.y0,st.y1,(a,b)=>{st.y0=a;st.y1=b;save();renderMain();},'Years shown');
 
 /* ---------- indicator picker ---------- */
 let pickCb=null,pickCur=null;
@@ -289,133 +157,31 @@ function drawPicker(){
 pq.addEventListener('input',drawPicker);document.getElementById('pclose').addEventListener('click',closePicker);
 pk.addEventListener('click',e=>{if(e.target===pk)closePicker();});document.addEventListener('keydown',e=>{if(e.key==='Escape')closePicker();});
 
-/* ---------- charts ---------- */
-const AX='rgba(255,255,255,.78)';
-function xTicks(a,b,pw){const span=b-a,per=74;let step=1;for(const c of [1,2,3,5,10,15,20,40]){step=c;if((Math.floor(span/c)+1)*per<=pw)break;}const t=[];for(let i=a;i<=b;i++)if((+YEARS[i].slice(0,4))%step===0)t.push(i);if(!t.length)t.push(a);return t;}
-function estBands(g,x,y0,y1,a,b,bw){
-  [['R','RE'],['B','BE']].forEach(([c,l])=>{const idx=M.basis.map((v,i)=>v===c?i:-1).filter(i=>i>=a&&i<=b);if(!idx.length)return;
-    const x0=x(idx[0])-bw/2,x1=x(idx[idx.length-1])+bw/2;g.append('rect').attr('x',x0).attr('y',y0).attr('width',Math.max(2,x1-x0)).attr('height',y1-y0).attr('fill','#fff').attr('opacity',c==='R'?.07:.12);
-    g.append('text').attr('x',(x0+x1)/2).attr('y',y0-(c==='B'&&bw<24?17:5)).attr('text-anchor','middle').attr('font-size',12).attr('fill',AX).text(l);});
-}
-function lineChart(el,o){
-  const series=o.series.map(s=>Object.assign({},s,{pts:s.pts.filter(p=>p[1]!=null&&isFinite(p[1]))})).filter(s=>s.pts.length);
-  el.textContent='';
-  if(!series.length){el.appendChild(h('p',{class:'empty',text:o.empty||'No data for this selection.'}));return;}
-  const W=el.clientWidth||600,wide=W>640,Ht=o.height||(wide?430:340);
-  const m={t:32,r:wide&&!o.noEnd?168:16,b:34,l:10};
-  const all=series.flatMap(s=>s.pts);let a=d3.min(all,p=>p[0]),b=d3.max(all,p=>p[0]);if(a===b){a=Math.max(0,a-1);b=Math.min(NY-1,b+1);}
-  let lo=d3.min(all,p=>p[1]),hi=d3.max(all,p=>p[1]);if(o.kind!=='idx'||lo<0){lo=Math.min(0,lo);hi=Math.max(0,hi);}if(lo===hi)hi=lo+1;
-  const y=d3.scaleLinear().domain([lo,hi]).nice(6).range([Ht-m.b,m.t]);
-  const tf=tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Line chart');
-  const ticks=y.ticks(6);const lw=d3.max(ticks,t=>tf(t).length)*8.6+10;m.l=Math.max(44,lw);
-  const x=d3.scaleLinear().domain([a,b]).range([m.l+8,W-m.r-8]);
-  const gg=svg.append('g').attr('class','gridl');ticks.forEach(t=>gg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)));
-  const ya=svg.append('g').attr('class','axis');ticks.forEach(t=>ya.append('text').attr('x',m.l-8).attr('y',y(t)+5).attr('text-anchor','end').text(tf(t)));
-  if(y.domain()[0]<0)svg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(0)).attr('y2',y(0)).attr('stroke','#888');
-  const xa=svg.append('g').attr('class','axis');xTicks(a,b,W-m.l-m.r).forEach(i=>xa.append('text').attr('x',x(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(YEARS[i]));
-  estBands(svg.append('g'),x,m.t,Ht-m.b,a,b,(x(a+1)-x(a))||10);
-  const ln=d3.line().x(p=>x(p[0])).y(p=>y(p[1]));
-  series.forEach(s=>{
-    const segs=[];let cur=[];s.pts.forEach((p,i)=>{if(i&&p[0]!==s.pts[i-1][0]+1){segs.push(cur);cur=[];}cur.push(p);});segs.push(cur);
-    segs.forEach(sg=>{if(sg.length>1)svg.append('path').attr('d',ln(sg)).attr('fill','none').attr('stroke',s.color).attr('stroke-width',s.bold?3:2).attr('stroke-dasharray',s.dash||null).attr('stroke-linejoin','round');
-      else svg.append('circle').attr('cx',x(sg[0][0])).attr('cy',y(sg[0][1])).attr('r',3).attr('fill',s.color);});
-    const e=s.pts[s.pts.length-1];svg.append('circle').attr('cx',x(e[0])).attr('cy',y(e[1])).attr('r',4.5).attr('fill',s.color).attr('stroke','#000').attr('stroke-width',2);
-  });
-  if(wide&&!o.noEnd){
-    const labs=series.map(s=>{const e=s.pts[s.pts.length-1];return {s,y:y(e[1]),v:e[1]};}).sort((p,q)=>p.y-q.y);
-    for(let k=0;k<4;k++){for(let i=1;i<labs.length;i++)if(labs[i].y-labs[i-1].y<19)labs[i].y=labs[i-1].y+19;for(let i=labs.length-2;i>=0;i--)if(labs[i+1].y>Ht-m.b){labs[i+1].y=Ht-m.b;}for(let i=labs.length-2;i>=0;i--)if(labs[i+1].y-labs[i].y<19)labs[i].y=labs[i+1].y-19;}
-    labs.forEach(l=>{const t=svg.append('text').attr('x',W-m.r+14).attr('y',l.y+5).attr('font-size',14);let nm=l.s.short||l.s.name;if(nm.length>19)nm=nm.slice(0,18)+'…';
-      svg.append('rect').attr('x',W-m.r+2).attr('y',l.y-1.5).attr('width',8).attr('height',3).attr('fill',l.s.color);t.text(nm);});
-  }
-  const rule=svg.append('line').attr('y1',m.t).attr('y2',Ht-m.b).attr('stroke','#fff').attr('stroke-opacity',.6).style('display','none');
-  const dots=svg.append('g');
-  const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
-  function move(ev){const pt=d3.pointer(ev.touches?ev.touches[0]:ev,svg.node());const i=Math.max(a,Math.min(b,Math.round(x.invert(pt[0]))));
-    rule.style('display',null).attr('x1',x(i)).attr('x2',x(i));dots.selectAll('*').remove();
-    const rows=series.map(s=>{const p=s.pts.find(p=>p[0]===i);return p?{s,v:p[1]}:null;}).filter(Boolean).sort((p,q)=>q.v-p.v);
-    rows.forEach(r=>dots.append('circle').attr('cx',x(i)).attr('cy',y(r.v)).attr('r',5).attr('fill',r.s.color).attr('stroke','#000').attr('stroke-width',2));
-    tip.show('<div class="t">'+YEARS[i]+(estTag(i)?' · '+BASISNAME[M.basis[i]]:'')+'</div>'+rows.map(r=>'<div class="r"><span>'+sw(r.s.color,1)+esc(r.s.name)+'</span><b>'+fmt(r.v,o.kind)+'</b></div>').join('')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);}
-  ov.on('mousemove',move).on('touchstart',move,{passive:true}).on('touchmove',move,{passive:true}).on('mouseleave',()=>{rule.style('display','none');dots.selectAll('*').remove();tip.hide();});
-}
-function stackChart(el,o){
-  el.textContent='';
-  const yrs=d3.range(NY).filter(i=>o.keys.some(k=>k.vals[i]!=null));
-  if(!yrs.length){el.appendChild(h('p',{class:'empty',text:'No data for this selection.'}));return;}
-  const a=yrs[0],b=yrs[yrs.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?380:320),m={t:32,r:8,b:34,l:50};
-  const rows=d3.range(a,b+1).map(i=>{const r={i};o.keys.forEach((k,j)=>r[j]=k.vals[i]==null?0:k.vals[i]);return r;});
-  const stk=d3.stack().keys(d3.range(o.keys.length)).offset(d3.stackOffsetDiverging)(rows);
-  const lo=d3.min(stk,s=>d3.min(s,d=>d[0])),hi=d3.max(stk,s=>d3.max(s,d=>d[1]));
-  const y=d3.scaleLinear().domain([Math.min(0,lo),hi||1]).nice(5).range([Ht-m.b,m.t]);
-  const tf=tickFmt(o.kind,y.domain()[1]),ticks=y.ticks(5);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
-  const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.14);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Stacked bar chart');
-  const gg=svg.append('g').attr('class','gridl');ticks.forEach(t=>gg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)));
-  const ya=svg.append('g').attr('class','axis');ticks.forEach(t=>ya.append('text').attr('x',m.l-8).attr('y',y(t)+5).attr('text-anchor','end').text(tf(t)));
-  const xc=i=>x(i)+x.bandwidth()/2;
-  estBands(svg.append('g'),xc,m.t,Ht-m.b,a,b,x.step());
-  stk.forEach((s,j)=>{svg.append('g').selectAll('rect').data(s).join('rect').attr('x',d=>x(d.data.i)).attr('width',x.bandwidth()).attr('y',d=>y(Math.max(d[0],d[1]))+.5).attr('height',d=>Math.max(0,Math.abs(y(d[0])-y(d[1]))-1)).attr('fill',o.keys[j].color);});
-  const xa=svg.append('g').attr('class','axis');xTicks(a,b,W-m.l-m.r).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(YEARS[i]));
-  const hl=svg.append('rect').attr('y',m.t).attr('height',Ht-m.t-m.b).attr('width',x.step()).attr('fill','#fff').attr('opacity',.1).style('display','none');
-  const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
-  function move(ev){const pt=d3.pointer(ev.touches?ev.touches[0]:ev,svg.node());const i=Math.max(a,Math.min(b,a+Math.floor((pt[0]-m.l)/x.step())));
-    hl.style('display',null).attr('x',x(i)-x.step()*x.paddingInner()/2);
-    let tot=0;const r=o.keys.map(k=>{const v=k.vals[i];if(v!=null)tot+=v;return '<div class="r"><span>'+sw(k.color)+esc(k.name)+'</span><b>'+fmt(v,o.kind)+'</b></div>';}).reverse().join('');
-    tip.show('<div class="t">'+YEARS[i]+(estTag(i)?' · '+BASISNAME[M.basis[i]]:'')+'</div>'+r+'<div class="r" style="border-top:1px solid #444;margin-top:4px;padding-top:4px"><span>'+esc(o.totalName||'Total')+'</span><b>'+fmt(tot,o.kind)+'</b></div>'+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);}
-  ov.on('mousemove',move).on('touchstart',move,{passive:true}).on('touchmove',move,{passive:true}).on('mouseleave',()=>{hl.style('display','none');tip.hide();});
-}
-function rankBars(el,o){
-  el.textContent='';const items=o.items.filter(d=>d.v!=null&&isFinite(d.v));
-  if(!items.length){el.appendChild(h('p',{class:'empty',text:o.empty||'No data for this year.'}));return;}
-  if(!o.keep)items.sort((p,q)=>q.v-p.v);
-  const W=el.clientWidth||500,rh=o.rh||27,lw=o.lw||Math.min(190,W*.38),vw=Math.min(120,d3.max(items,d=>fmt(d.v,o.kind).length)*8.8+8);
-  const Ht=items.length*rh+8;const ext=[Math.min(0,d3.min(items,d=>Math.min(d.v,d.ref==null?d.v:d.ref))),Math.max(0,d3.max(items,d=>Math.max(d.v,d.ref==null?d.v:d.ref)))];
-  const neg=ext[0]<0;const x=d3.scaleLinear().domain(ext).range([lw+(neg?vw:0),W-vw]);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Ranked bars');
-  svg.append('line').attr('x1',x(0)).attr('x2',x(0)).attr('y1',0).attr('y2',Ht).attr('stroke','#666');
-  items.forEach((d,i)=>{const yy=i*rh+4,g=svg.append('g').style('cursor',o.onClick?'pointer':null);
-    g.append('rect').attr('x',0).attr('y',yy-2).attr('width',W).attr('height',rh).attr('fill','transparent');
-    let nm=d.name;const maxc=Math.floor(lw/8.4);if(nm.length>maxc)nm=nm.slice(0,maxc-1)+'…';
-    g.append('text').attr('x',lw-8).attr('y',yy+rh/2+2).attr('text-anchor','end').attr('font-size',15).attr('font-weight',d.hl?600:400).attr('fill',d.dim?'rgba(255,255,255,.72)':'#fff').text(nm);
-    const x0=Math.min(x(0),x(d.v)),bw=Math.abs(x(d.v)-x(0));
-    g.append('rect').attr('x',x0).attr('y',yy+3).attr('width',Math.max(1,bw)).attr('height',rh-10).attr('rx',3).attr('fill',d.color||o.color||PAL[0]).attr('opacity',d.dim?.55:1);
-    if(d.ref!=null)g.append('line').attr('x1',x(d.ref)).attr('x2',x(d.ref)).attr('y1',yy).attr('y2',yy+rh-4).attr('stroke','#fff').attr('stroke-width',2.5);
-    g.append('text').attr('x',d.v<0?x(d.v)-6:x(d.v)+6).attr('y',yy+rh/2+2).attr('text-anchor',d.v<0?'end':'start').attr('font-size',15).attr('font-variant-numeric','tabular-nums').text(fmt(d.v,o.kind));
-    g.on('mousemove',ev=>tip.show('<div class="t">'+esc(d.full||d.name)+'</div><div class="r"><span>'+esc(o.vname||'Value')+'</span><b>'+fmt(d.v,o.kind)+'</b></div>'+(d.ref!=null?'<div class="r"><span>'+esc(o.rname||'All states')+'</span><b>'+fmt(d.ref,o.kind)+'</b></div>':'')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev)).on('mouseleave',tip.hide);
-    if(o.onClick)g.on('click',()=>o.onClick(d));
-  });
-}
-function spark(vals){const pts=vals.map((v,i)=>[i,v]).filter(p=>p[1]!=null);if(pts.length<2)return '';const W=180,Ht=38,x=d3.scaleLinear().domain([0,NY-1]).range([3,W-5]),e=d3.extent(pts,p=>p[1]),y=d3.scaleLinear().domain(e[0]===e[1]?[e[0]-1,e[1]+1]:e).range([Ht-4,4]);
-  const l=d3.line().x(p=>x(p[0])).y(p=>y(p[1]))(pts),z=pts[pts.length-1];const zero=e[0]<0&&e[1]>0?'<line x1="3" x2="'+(W-5)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="#555"/>':'';
-  return '<svg width="'+W+'" height="'+Ht+'" aria-hidden="true">'+zero+'<path d="'+l+'" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="'+x(z[0])+'" cy="'+y(z[1])+'" r="3.5" fill="#fff"/></svg>';}
-
-/* ---------- colour scale for map ---------- */
-const SEQ=['#12333b','#1d5562','#2f7b8c','#4ea3b6','#7fcfe2','#c4f1fb'];
-const DIVC=['#c4f1fb','#63b8cb','#28606c','#6e2f55','#c56a9f','#fbc4e3'];
-function classer(values,div){
-  const v=values.filter(x=>x!=null&&isFinite(x)).sort(d3.ascending);if(!v.length)return null;
-  if(div){const ab=(div.pool||v).map(Math.abs).filter(x=>x>0).sort(d3.ascending);let b1=d3.quantile(ab,.4)||1,b2=d3.quantile(ab,.8)||2;if(b2<=b1)b2=b1*2;
-    const th=[-b2,-b1,0,b1,b2];return {th,cols:DIVC,div:true,f:x=>x===0?'#5a5a5a':DIVC[d3.bisectRight(th,x)]};}
-  const th=[1,2,3,4,5].map(k=>d3.quantile(v,k/6));const u=th.filter((t,i)=>i===0||t>th[i-1]);const cols=SEQ.slice(SEQ.length-(u.length+1));
-  return {th:u,cols,f:x=>cols[d3.bisectRight(u,x)]};
-}
-function scaleLegend(c,kind,neg,pos){const d=h('div',{class:'legend'});if(c.div){const L=['below '+fmt(c.th[0],kind),fmt(c.th[0],kind)+' to '+fmt(c.th[1],kind),fmt(c.th[1],kind)+' to 0','0 to '+fmt(c.th[3],kind),fmt(c.th[3],kind)+' to '+fmt(c.th[4],kind),fmt(c.th[4],kind)+' and above'];c.cols.forEach((col,i)=>d.appendChild(h('span',{html:sw(col)+esc(L[i])})));d.appendChild(h('span',{html:'<i class="sw" style="background:#161616;border:1px solid #555"></i>not covered or no data'}));return d;}c.cols.forEach((col,i)=>{const lo=i?fmt(c.th[i-1],kind):null,hi=i<c.th.length?fmt(c.th[i],kind):null;d.appendChild(h('span',{html:sw(col)+esc(lo==null?'below '+hi:hi==null?lo+' and above':lo+' to '+hi)}));});d.appendChild(h('span',{html:'<i class="sw" style="background:#161616;border:1px solid #555"></i>not covered or no data'}));return d;}
+/* ---------- charts: the shared toolkit, with this dataset's years and estimate bands ---------- */
+// revised (RE) and budget (BE) estimate years are shaded on every time chart
+const BANDS=[['R','RE',.07],['B','BE',.12]].map(([c,l,op])=>{const idx=M.basis.map((v,i)=>v===c?i:-1).filter(i=>i>=0);return idx.length?{from:idx[0],to:idx[idx.length-1],label:l,op}:null;}).filter(Boolean);
+const yearTitle=i=>YEARS[i]+(estTag(i)?' · '+BASISNAME[M.basis[i]]:'');
+const TIME={labels:YEARS,bands:BANDS,align:i=>+YEARS[i].slice(0,4),steps:IE.YEAR_STEPS,tipTitle:yearTitle};
+const lineChart=(el,o)=>IE.lineChart(el,Object.assign({},TIME,{endLabels:!o.noEnd},o));
+const growthChart=(el,o)=>IE.growthChart(el,Object.assign({},TIME,o));
+const stackChart=(el,o)=>IE.stackChart(el,Object.assign({},TIME,o));
+const rankBars=(el,o)=>IE.rankBars(el,Object.assign({rname:'All states'},o));
+const spark=IE.spark;
 
 /* ---------- views ---------- */
 let Q=[];const later=f=>Q.push(f);const flush=()=>{const q=Q;Q=[];q.forEach(f=>f());};
 const main=document.getElementById('main'),bar=document.getElementById('bar');
 const VIEWS=[['profile','State profile'],['compare','Compare states'],['map','Map'],['scatter','Scatter'],['browse','All indicators'],['budget','Budget vs actuals'],['methods','Sources and methods']];
-function go(v){st.view=v;if(location.hash!=='#'+v){try{history.replaceState(null,'','#'+v);}catch(e){location.hash=v;}}render();window.scrollTo(0,0);}
-function drawTabs(){const t=document.getElementById('tabs');t.textContent='';VIEWS.forEach(([id,n])=>t.appendChild(h('a',{href:'#'+id,text:n,'aria-current':st.view===id?'page':null,onclick:e=>{e.preventDefault();go(id);}})));}
+const R=IE.router(VIEWS,'profile',render,{onResize:()=>renderMain()});const go=v=>R.go(v);
 function deflCtl(){return ctl('Price deflator',sel([['nat','All-India GDP deflator'],['state','Each state’s GSDP deflator (from 1993-94)']],st.defl,v=>{st.defl=v;save();renderMain();}));}
 function unitCtl(){return ctl('Measure',unitSel(st.unit,v=>{st.unit=v;save();render();}));}
-function render(){drawTabs();bar.textContent='';tip.hide();stopPlay();({profile:barProfile,compare:barCompare,map:barMap,scatter:barScatter,browse:barBrowse,budget:barBudget,methods:()=>{bar.style.display='none';}})[st.view]();if(st.view!=='methods')bar.style.display='';renderMain();}
-function renderMain(){main.textContent='';({profile:vProfile,compare:vCompare,map:vMap,scatter:vScatter,browse:vBrowse,budget:vBudget,methods:vMethods})[st.view]();}
+function render(){R.tabs(document.getElementById('tabs'));bar.textContent='';tip.hide();IE.stopPlay();({profile:barProfile,compare:barCompare,map:barMap,scatter:barScatter,browse:barBrowse,budget:barBudget,methods:()=>{}})[R.get()]();renderMain();}
+function renderMain(){main.textContent='';tip.hide();({profile:vProfile,compare:vCompare,map:vMap,scatter:vScatter,browse:vBrowse,budget:vBudget,methods:vMethods})[R.get()]();}
 const seriesFor=(id,si,u)=>d3.range(NY).map(i=>[i,val(id,si,i,u)]);
 const valsFor=(id,si,u)=>d3.range(NY).map(i=>val(id,si,i,u));
 
 /* --- profile --- */
-function barProfile(){bar.appendChild(ctl('State or UT',stateSel(st.state,v=>{st.state=v;save();renderMain();})));bar.appendChild(unitCtl());if(usesDefl(st.unit))bar.appendChild(deflCtl());bar.appendChild(yearCtl());}
+function barProfile(){bar.appendChild(ctl('State or UT',stateSel(st.state,v=>{st.state=v;save();renderMain();})));bar.appendChild(unitCtl());if(usesDefl(st.unit))bar.appendChild(deflCtl());bar.appendChild(yearCtl(false));}
 function vProfile(){
   const si=STATES.indexOf(st.state),yi=st.yi,all=si===0;
   let u=st.unit,fb='';if(u==='g'||u==='gk'){u='gsdp';fb=' Growth measures do not stack, so the composition charts below use % of GSDP.';}
@@ -473,43 +239,31 @@ function vCompare(){
   const sets=h('div',{class:'row'});sets.appendChild(h('span',{class:'lab',text:'Quick sets'}));Object.keys(SETS).forEach(n=>sets.appendChild(h('button',{class:'sm',text:n,onclick:()=>{st.states=SETS[n].slice();save();renderMain();}})));main.appendChild(sets);
   const c=h('div',{class:'card'});const b=h('div'),lg=h('div');c.appendChild(h('h2',{text:headText(id,u)}));c.appendChild(lg);c.appendChild(b);main.appendChild(c);
   const series=st.states.map(s=>({name:SNAME(s),short:s==='All States/UT'?'All states':s,color:colorOf(s),dash:s==='All States/UT'?'5 4':null,pts:seriesFor(id,STATES.indexOf(s),u).filter(p=>p[0]>=st.y0&&p[0]<=st.y1)}));
-  lineChart(b,{series,kind,unit:unitText(id,u),label:IND[id].name,empty:'None of the selected states has data for this indicator and measure between '+YEARS[st.y0]+' and '+YEARS[st.y1]+'. Widen the years.'});
-  if(b.clientWidth<=640)lg.appendChild(legend(series.map(x=>({name:x.name,color:x.color})),1));
+  const emptyMsg='None of the selected states has data for this indicator and measure between '+YEARS[st.y0]+' and '+YEARS[st.y1]+'. Widen the years.';
+  if(u==='g'||u==='gk')growthChart(b,{series,kind,unit:unitText(id,u),label:IND[id].name,empty:emptyMsg});
+  else{lineChart(b,{series,kind,unit:unitText(id,u),label:IND[id].name,empty:emptyMsg});if(b.clientWidth<=640)lg.appendChild(legend(series.map(x=>({name:x.name,color:x.color})),1));}
   c.appendChild(indNote(id,u));
   c.appendChild(h('p',{class:'est-note',text:'Shaded years are revised estimates (RE) and budget estimates (BE), not audited accounts.'}));
   main.appendChild(h('h3',{text:'The numbers, '+YEARS[st.y0]+' to '+YEARS[st.y1],style:'margin-top:22px'}));
   const yr=d3.range(st.y0,st.y1+1),rows=st.states.map(s=>[SNAME(s)].concat(yr.map(i=>val(id,STATES.indexOf(s),i,u))));
-  main.appendChild(h('div',{class:'row'},[copyBtn(()=>toCSV(['State'].concat(yr.map(i=>YEARS[i])),rows))]));
-  main.appendChild(tableOf(['State'].concat(yr.map(i=>YEARS[i]+(estTag(i)?' '+estTag(i):''))),rows.map(r=>[r[0]].concat(r.slice(1).map(v=>v==null?'':fmt(v,kind).replace(/^₹| cr$/g,''))))));
+  main.appendChild(h('div',{class:'row'},[IE.copyBtn(()=>IE.toCSV(['State'].concat(yr.map(i=>YEARS[i])),rows))]));
+  main.appendChild(IE.table(['State'].concat(yr.map(i=>YEARS[i]+(estTag(i)?' '+estTag(i):''))),rows.map(r=>[r[0]].concat(r.slice(1).map(v=>v==null?'':fmt(v,kind).replace(/^₹| cr$/g,''))))));
 }
-function tableOf(head,rows){const t=h('table');const tr=h('tr');head.forEach(x=>tr.appendChild(h('th',{text:x})));t.appendChild(h('thead',null,[tr]));const tb=h('tbody');rows.forEach(r=>{const e=h('tr');r.forEach(x=>e.appendChild(h('td',{text:x})));tb.appendChild(e);});t.appendChild(tb);return h('div',{class:'tblwrap'},[t]);}
-function toCSV(head,rows){const q=x=>x==null?'':/[",\n]/.test(String(x))?'"'+String(x).replace(/"/g,'""')+'"':String(x);return [head].concat(rows).map(r=>r.map(q).join(',')).join('\n');}
-function copyBtn(get){const b=h('button',{class:'sm',text:'Copy as CSV',onclick:()=>{const done=ok=>{b.textContent=ok?'Copied':'Copy failed: select the table and copy it';setTimeout(()=>b.textContent='Copy as CSV',2200);};try{navigator.clipboard.writeText(get()).then(()=>done(true),()=>done(false));}catch(e){done(false);}}});return b;}
-
 /* --- map --- */
-let playT=null;function stopPlay(){if(playT){clearInterval(playT);playT=null;st.playing=false;}}
-function barMap(){bar.appendChild(ctl('Indicator',pickBtn(st.ind,id=>{st.ind=id;save();render();})));bar.appendChild(unitCtl());if(usesDefl(st.unit)&&!(IND[st.ind].unit&&IND[st.ind].unit!=='cr'))bar.appendChild(deflCtl());bar.appendChild(yearCtl());
-  const pb=h('button',{text:'Play years',onclick:()=>{if(playT){stopPlay();pb.textContent='Play years';return;}pb.textContent='Stop';st.playing=true;if(st.yi>=NY-1)st.yi=0;playT=setInterval(()=>{if(st.yi>=NY-1){stopPlay();pb.textContent='Play years';return;}st.yi++;const r=document.getElementById('yr');r.value=st.yi;r.dispatchEvent(new Event('input'));},700);}});
-  bar.appendChild(h('div',{class:'ctl'},[h('span',{class:'lab',html:'&nbsp;'}),pb]));}
-const FEAT=topojson.feature(window.GEO,window.GEO.objects.states).features;
+function barMap(){bar.appendChild(ctl('Indicator',pickBtn(st.ind,id=>{st.ind=id;save();render();})));bar.appendChild(unitCtl());if(usesDefl(st.unit)&&!(IND[st.ind].unit&&IND[st.ind].unit!=='cr'))bar.appendChild(deflCtl());bar.appendChild(yearCtl(true));}
 function vMap(){
   const id=st.ind,u=st.unit,yi=st.yi,kind=kindOf(id,u),hd=headText(id,u)+', '+YEARS[yi]+(estTag(yi)?' '+estTag(yi):'');
   const vals={};STATES.forEach((s,si)=>{if(si)vals[s]=val(id,si,yi,u);});
   let pool=null;if(isDiv(id,u)&&!['cr','crk','pc','pck'].includes(u)||isDiv(id,u)&&IND[id].unit){pool=[];for(let si=1;si<NS;si++)for(let i=0;i<NY;i++){const x=val(id,si,i,u);if(x!=null&&isFinite(x))pool.push(x);}}
-  const cl=classer(Object.values(vals),isDiv(id,u)?{pool}:false);
+  const cl=IE.classer(Object.values(vals),isDiv(id,u)?{pool}:false);
   const rowEl=h('div',{class:'maprow'});main.appendChild(rowEl);
   const c1=h('div',{class:'card'}),c2=h('div',{class:'card'});rowEl.appendChild(c1);rowEl.appendChild(c2);
   c1.appendChild(h('h3',{text:hd}));
   if(!cl){c1.appendChild(h('p',{class:'empty',text:'No state has data for this indicator and measure in '+YEARS[yi]+'.'}));}
-  else{c1.appendChild(scaleLegend(cl,kind));const b=h('div');c1.appendChild(b);
-    const W=b.clientWidth||520,Ht=Math.min(680,W*1.08);const proj=d3.geoMercator().fitExtent([[4,4],[W-4,Ht-4]],{type:'FeatureCollection',features:FEAT});const path=d3.geoPath(proj);
-    const svg=d3.select(b).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label','Map of India by state: '+IND[id].name);
-    const lookup=n=>{if(n==='Ladakh'&&YEARS[yi]<'2019-20')return 'Jammu and Kashmir';return n;};
-    svg.selectAll('path').data(FEAT).join('path').attr('d',path).attr('fill',f=>{const v=vals[lookup(f.properties.n)];return v==null?'#161616':cl.f(v);}).attr('stroke','#000').attr('stroke-width',.8).style('cursor',f=>vals[lookup(f.properties.n)]!=null?'pointer':null)
-      .on('mousemove',function(ev,f){const n=lookup(f.properties.n),v=vals[n];d3.select(this).attr('stroke','#fff').attr('stroke-width',1.6).raise();
-        tip.show('<div class="t">'+esc(f.properties.n)+(n!==f.properties.n?' (part of Jammu and Kashmir)':'')+'</div>'+(STATES.includes(n)?'<div class="r"><span>'+YEARS[yi]+'</span><b>'+fmt(v,kind)+'</b></div><div class="m">'+esc(unitText(id,u))+'</div>':'<div class="m">Union territory without its own budget in e-STATES</div>'),ev);})
-      .on('mouseleave',function(){d3.select(this).attr('stroke','#000').attr('stroke-width',.8);tip.hide();})
-      .on('click',(ev,f)=>{const n=lookup(f.properties.n);if(STATES.includes(n)){st.state=n;save();go('profile');}});
+  else{c1.appendChild(IE.scaleLegend(cl,kind,'not covered or no data'));const b=h('div');c1.appendChild(b);
+    IE.mapChart(b,{values:vals,cl,kind,label:'Map of India by state: '+IND[id].name,lookup:n=>n==='Ladakh'&&YEARS[yi]<'2019-20'?'Jammu and Kashmir':n,
+      tipHtml:(geo,n,v)=>'<div class="t">'+esc(geo)+(n!==geo?' (part of Jammu and Kashmir)':'')+'</div>'+(STATES.includes(n)?'<div class="r"><span>'+YEARS[yi]+'</span><b>'+fmt(v,kind)+'</b></div><div class="m">'+esc(unitText(id,u))+'</div>':'<div class="m">Union territory without its own budget in e-STATES</div>'),
+      onClick:n=>{if(STATES.includes(n)){st.state=n;save();go('profile');}}});
     c1.appendChild(h('p',{class:'est-note',text:'Select a state to open its profile.'+(cl.div?'':' Colour bands hold roughly equal numbers of states.')}));}
   c2.appendChild(h('h3',{text:'Ranking: '+hd}));const n2=h('p',{class:'note',style:'margin-top:10px',text:unitText(id,u)+'. '+BASISNAME[M.basis[yi]]+' figures. The white bar is the all-states figure.'+(cl&&cl.div?(' Positive values are always pink and negative values always cyan'+(IND[id].kind==='bal'?' (for deficits, pink is a deficit and cyan a surplus)':'')+'.'+(pool?' Colour bands are fixed across all years, so shades can be compared year to year.':' Band edges are set by this year’s values.')):'')});
   const b2=h('div');c2.appendChild(b2);const ref=val(id,0,yi,u);const showRef=kind!=='cr'&&kind!=='pop';
@@ -522,7 +276,7 @@ function vMap(){
 function barScatter(){
   bar.appendChild(ctl('Across (x)',pickBtn(st.sx,id=>{st.sx=id;save();render();})));if(!(IND[st.sx].unit&&IND[st.sx].unit!=='cr'))bar.appendChild(ctl('x measure',unitSel(st.sxu,v=>{st.sxu=v;save();render();})));
   bar.appendChild(ctl('Up (y)',pickBtn(st.sy,id=>{st.sy=id;save();render();})));if(!(IND[st.sy].unit&&IND[st.sy].unit!=='cr'))bar.appendChild(ctl('y measure',unitSel(st.syu,v=>{st.syu=v;save();render();})));
-  bar.appendChild(yearCtl());}
+  bar.appendChild(yearCtl(false));}
 function vScatter(){
   const yi=st.yi,kx=kindOf(st.sx,st.sxu),ky=kindOf(st.sy,st.syu);
   main.appendChild(h('h2',{text:headText(st.sy,st.syu)+' against '+IND[st.sx].name.charAt(0).toLowerCase()+IND[st.sx].name.slice(1)+', '+YEARS[yi]}));
@@ -530,22 +284,10 @@ function vScatter(){
   const pts=STATES.slice(1).map((s,i)=>({s,x:val(st.sx,i+1,yi,st.sxu),y:val(st.sy,i+1,yi,st.syu),g:raw(GID,i+1,yi)})).filter(p=>p.x!=null&&p.y!=null&&isFinite(p.x)&&isFinite(p.y));
   const c=h('div',{class:'card'}),b=h('div');c.appendChild(b);main.appendChild(c);main.appendChild(sn);
   if(pts.length<2){b.appendChild(h('p',{class:'empty',text:'Fewer than two states have both values in '+YEARS[yi]+'. Try another year or measure.'}));return;}
-  const W=b.clientWidth||700,Ht=Math.min(640,Math.max(380,W*.62)),m={t:20,r:26,b:56,l:70};
-  const pad=e=>{const d=(e[1]-e[0])||1;return [e[0]-d*.06,e[1]+d*.08];};
-  const x=d3.scaleLinear().domain(pad(d3.extent(pts,p=>p.x))).range([m.l,W-m.r]),y=d3.scaleLinear().domain(pad(d3.extent(pts,p=>p.y))).range([Ht-m.b,m.t]);
-  const fx=tickFmt(kx,Math.abs(x.domain()[1])),fy=tickFmt(ky,Math.abs(y.domain()[1]));const yt=y.ticks(6);m.l=Math.max(56,d3.max(yt,t=>fy(t).length)*8.6+12);x.range([m.l,W-m.r]);
-  const r=d3.scaleSqrt().domain([0,d3.max(pts,p=>p.g||0)||1]).range([5,W>640?30:20]);
-  const svg=d3.select(b).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label','Scatter of states');
-  const gg=svg.append('g').attr('class','gridl'),ax=svg.append('g').attr('class','axis');
-  yt.forEach(t=>{gg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t));ax.append('text').attr('x',m.l-8).attr('y',y(t)+5).attr('text-anchor','end').text(fy(t));});
-  x.ticks(W>640?7:4).forEach(t=>{gg.append('line').attr('y1',m.t).attr('y2',Ht-m.b).attr('x1',x(t)).attr('x2',x(t));ax.append('text').attr('x',x(t)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(fx(t));});
-  [[x,'x'],[y,'y']].forEach(([s,a])=>{if(s.domain()[0]<0&&s.domain()[1]>0){const l=svg.append('line').attr('stroke','#888');if(a==='x')l.attr('x1',x(0)).attr('x2',x(0)).attr('y1',m.t).attr('y2',Ht-m.b);else l.attr('y1',y(0)).attr('y2',y(0)).attr('x1',m.l).attr('x2',W-m.r);}});
-  svg.append('text').attr('x',(m.l+W-m.r)/2).attr('y',Ht-8).attr('text-anchor','middle').attr('font-size',15).text(IND[st.sx].name+' ('+ (IND[st.sx].unit&&IND[st.sx].unit!=='cr'?FIXED[IND[st.sx].unit]:UNIT[st.sxu].short)+')');
-  pts.sort((p,q)=>(q.g||0)-(p.g||0));
-  const g=svg.append('g').selectAll('g').data(pts).join('g').style('cursor','pointer');
-  g.append('circle').attr('cx',p=>x(p.x)).attr('cy',p=>y(p.y)).attr('r',p=>r(p.g||0)).attr('fill',PAL[0]).attr('fill-opacity',.38).attr('stroke',PAL[0]).attr('stroke-width',1.5);
-  g.append('text').attr('x',p=>x(p.x)).attr('y',p=>y(p.y)+5).attr('text-anchor','middle').attr('font-size',13).attr('font-weight',600).attr('paint-order','stroke').attr('stroke','#000').attr('stroke-width',3).text(p=>ABB[p.s]);
-  g.on('mousemove',(ev,p)=>tip.show('<div class="t">'+esc(p.s)+', '+YEARS[yi]+'</div><div class="r"><span>'+esc(IND[st.sx].name)+'</span><b>'+fmt(p.x,kx)+'</b></div><div class="r"><span>'+esc(IND[st.sy].name)+'</span><b>'+fmt(p.y,ky)+'</b></div><div class="r"><span>GSDP</span><b>'+fmt(p.g,'cr')+'</b></div>',ev)).on('mouseleave',tip.hide).on('click',(ev,p)=>{st.state=p.s;save();go('profile');});
+  IE.scatterChart(b,{pts:pts.map(p=>Object.assign(p,{name:p.s,label:ABB[p.s],size:p.g})),xkind:kx,ykind:ky,label:'Scatter of states',
+    xTitle:IND[st.sx].name+' ('+(IND[st.sx].unit&&IND[st.sx].unit!=='cr'?FIXED[IND[st.sx].unit]:UNIT[st.sxu].short)+')',
+    tipHtml:p=>'<div class="t">'+esc(p.s)+', '+YEARS[yi]+'</div><div class="r"><span>'+esc(IND[st.sx].name)+'</span><b>'+fmt(p.x,kx)+'</b></div><div class="r"><span>'+esc(IND[st.sy].name)+'</span><b>'+fmt(p.y,ky)+'</b></div><div class="r"><span>GSDP</span><b>'+fmt(p.g,'cr')+'</b></div>',
+    onClick:p=>{st.state=p.s;save();go('profile');}});
   const n=pts.length,mx=d3.mean(pts,p=>p.x),my=d3.mean(pts,p=>p.y),sxx=d3.sum(pts,p=>(p.x-mx)**2),syy=d3.sum(pts,p=>(p.y-my)**2),sxy=d3.sum(pts,p=>(p.x-mx)*(p.y-my));
   if(sxx>0&&syy>0)c.appendChild(h('p',{class:'est-note',text:n+' states. Correlation between the two, unweighted: '+(sxy/Math.sqrt(sxx*syy)).toFixed(2)+'. Select a circle to open that state.'}));
 }
@@ -559,13 +301,13 @@ function vBrowse(){
   const g=GROUP[st.bgroup];main.appendChild(h('h2',{text:g.label+': '+SNAME(st.state)+(st.bgroup==='X'?'':' ('+UNIT[st.unit].short+')')}));
   const bn=(h('p',{class:'note',style:'margin-top:10px',text:g.note.replace(/\.$/,'')+'. '+(st.bgroup==='X'?'Each row has its own unit.':UNIT[st.unit].label+'.')+' Select a row name to compare states on it. RE and BE mark revised and budget estimates.'}));
   const allOpen=h('button',{class:'sm',text:'Expand all rows',onclick:()=>{M.inds.forEach(d=>{if(d.g===st.bgroup&&kids[d.id])st.bopen[d.id]=true;});drawBrowse();}}),allShut=h('button',{class:'sm',text:'Collapse',onclick:()=>{st.bopen={};drawBrowse();}});
-  main.appendChild(h('div',{class:'row'},[allOpen,allShut,copyBtn(()=>browseCSV())]));
+  main.appendChild(h('div',{class:'row'},[allOpen,allShut,IE.copyBtn(()=>browseCSV())]));
   browseHost=h('div');main.appendChild(browseHost);main.appendChild(bn);drawBrowse();
 }
 function browseRows(){const q=st.bq.trim().toLowerCase(),flat=st.bgroup==='K'||st.bgroup==='X';
   const isOpen=id=>IND[id].parent==null?st.bopen[id]!==false:!!st.bopen[id];
   return M.inds.filter(d=>{if(d.g!==st.bgroup)return false;if(q)return !d.header&&d.name.toLowerCase().includes(q);if(flat)return true;let p=d.parent;while(p){if(!isOpen(p))return false;p=IND[p].parent;}return true;});}
-function browseCSV(){const si=STATES.indexOf(st.state);return toCSV(['Code','Indicator','Unit'].concat(YEARS),M.inds.filter(d=>d.g===st.bgroup&&!d.header).map(d=>[d.code,d.name,unitText(d.id,st.unit)].concat(valsFor(d.id,si,st.unit).map(v=>v==null?'':+v.toFixed(4)))));}
+function browseCSV(){const si=STATES.indexOf(st.state);return IE.toCSV(['Code','Indicator','Unit'].concat(YEARS),M.inds.filter(d=>d.g===st.bgroup&&!d.header).map(d=>[d.code,d.name,unitText(d.id,st.unit)].concat(valsFor(d.id,si,st.unit).map(v=>v==null?'':+v.toFixed(4)))));}
 function drawBrowse(){
   if(!browseHost)return;browseHost.textContent='';const si=STATES.indexOf(st.state),q=st.bq.trim(),flat=st.bgroup==='K'||st.bgroup==='X';
   const rows=browseRows();if(!rows.length){browseHost.appendChild(h('p',{class:'empty',text:'No row matches “'+q+'”.'}));return;}
@@ -594,7 +336,7 @@ function vBudget(){
     main.appendChild(h('div',{class:'row'},[h('button',{text:'Choose a budget indicator',onclick:()=>openPicker(st.ind,v=>{st.ind=v;save();render();})}),h('button',{text:'Show revenue receipts',onclick:()=>{st.ind=K('Revenue receipts');save();render();}}),h('button',{text:'See '+IND[st.ind].name+' in Compare states',onclick:()=>go('compare')})]));return;}
   const id=st.ind,d=IND[id],si=STATES.indexOf(st.state);
   const bnote=(h('p',{class:'note',style:'margin-top:10px',text:SNAME(st.state)+' · '+pathOf(d)+' · ₹ crore, current prices. Each year has up to three figures: the budget estimate made before the year, the revised estimate made during it, and the audited accounts.'}));
-  if(!window.SF_EST){main.appendChild(h('p',{class:'empty',text:estState===3?'The estimates file did not load. Reload the page to try again.':'Loading budget and revised estimates…'}));loadEst(()=>{if(st.view==='budget')renderMain();});return;}
+  if(!window.SF_EST){main.appendChild(h('p',{class:'empty',text:estState===3?'The estimates file did not load. Reload the page to try again.':'Loading budget and revised estimates…'}));loadEst(()=>{if(R.get()==='budget')renderMain();});return;}
   const be=window.SF_EST.be[id],re=window.SF_EST.re[id],g=(a,i)=>{const v=a?a[si*NY+i]:null;return v==null?null:v;};
   const acc=i=>M.basis[i]==='A'?raw(id,si,i):null;
   const S=[{name:'Budget estimate',color:PAL[1],pts:d3.range(NY).map(i=>[i,g(be,i)])},{name:'Revised estimate',color:PAL[2],pts:d3.range(NY).map(i=>[i,g(re,i)])},{name:'Accounts',color:PAL[0],bold:true,pts:d3.range(NY).map(i=>[i,acc(i)])}];
@@ -603,24 +345,12 @@ function vBudget(){
   later(()=>lineChart(b,{series:S,kind:'cr',unit:'₹ crore, current prices',height:400,noEnd:true,label:'Budget, revised and actual'}));
   const c2=h('div',{class:'card'}),b2=h('div');c2.appendChild(h('h3',{text:'Accounts above or below budget: '+d.name+', '+SNAME(st.state)+' (%)'}));c2.appendChild(b2);c2.appendChild(h('p',{class:'note',style:'margin-top:10px',text:'Accounts as a percentage above or below the budget estimate for the same year.'}));grid.appendChild(c2);
   const dev=d3.range(NY).map(i=>{const a=acc(i),bb=g(be,i);return a!=null&&bb!=null&&bb>0?(a/bb-1)*100:null;});
-  later(()=>devBars(b2,dev));flush();
+  later(()=>IE.barChart(b2,Object.assign({},TIME,{bands:null,series:[{name:'Accounts vs budget',color:PAL[0],pts:dev.map((v,i)=>[i,v])}],kind:'pct',label:'Accounts versus budget, per cent',empty:'No year has both a budget estimate and accounts for this head.'})));flush();
   const mean=d3.mean(dev.filter(v=>v!=null));if(mean!=null)c2.appendChild(h('p',{class:'est-note',text:'Average gap over '+dev.filter(v=>v!=null).length+' years: '+(mean>0?'+':'')+mean.toFixed(1)+'%. Budget estimates in e-STATES start in 2002-03.'}));
   main.appendChild(bnote);main.appendChild(h('h3',{text:'The numbers',style:'margin-top:22px'}));
   const f=v=>v==null?'':Math.abs(v)>=100?IN(Math.round(v)):v.toFixed(2);
-  main.appendChild(tableOf(['₹ crore'].concat(YEARS),[['Budget estimate'].concat(d3.range(NY).map(i=>f(g(be,i)))),['Revised estimate'].concat(d3.range(NY).map(i=>f(g(re,i)))),['Accounts'].concat(d3.range(NY).map(i=>f(acc(i)))),['Accounts vs budget, %'].concat(dev.map(v=>v==null?'':(v>0?'+':'')+v.toFixed(1)))]));
+  main.appendChild(IE.table(['₹ crore'].concat(YEARS),[['Budget estimate'].concat(d3.range(NY).map(i=>f(g(be,i)))),['Revised estimate'].concat(d3.range(NY).map(i=>f(g(re,i)))),['Accounts'].concat(d3.range(NY).map(i=>f(acc(i)))),['Accounts vs budget, %'].concat(dev.map(v=>v==null?'':(v>0?'+':'')+v.toFixed(1)))]));
 }
-function devBars(el,dev){
-  el.textContent='';const idx=d3.range(NY).filter(i=>dev[i]!=null);if(!idx.length){el.appendChild(h('p',{class:'empty',text:'No year has both a budget estimate and accounts for this head.'}));return;}
-  const a=idx[0],b=idx[idx.length-1],W=el.clientWidth||600,Ht=W>640?400:320,m={t:22,r:8,b:34,l:56};
-  const e=d3.extent(idx,i=>dev[i]),y=d3.scaleLinear().domain([Math.min(0,e[0]),Math.max(0,e[1])]).nice(5).range([Ht-m.b,m.t]),x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.18);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label','Accounts versus budget, per cent');
-  const gg=svg.append('g').attr('class','gridl'),ax=svg.append('g').attr('class','axis');y.ticks(5).forEach(t=>{gg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t));ax.append('text').attr('x',m.l-8).attr('y',y(t)+5).attr('text-anchor','end').text((t>0?'+':'')+t+'%');});
-  svg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(0)).attr('y2',y(0)).attr('stroke','#aaa');
-  svg.append('g').selectAll('rect').data(idx).join('rect').attr('x',i=>x(i)).attr('width',x.bandwidth()).attr('y',i=>Math.min(y(0),y(dev[i]))).attr('height',i=>Math.max(1,Math.abs(y(dev[i])-y(0)))).attr('rx',2).attr('fill',PAL[0])
-    .on('mousemove',(ev,i)=>tip.show('<div class="t">'+YEARS[i]+'</div><div class="r"><span>Accounts vs budget</span><b>'+(dev[i]>0?'+':'')+dev[i].toFixed(1)+'%</b></div>',ev)).on('mouseleave',tip.hide);
-  xTicks(a,b,W-m.l-m.r).forEach(i=>ax.append('text').attr('x',x(i)+x.bandwidth()/2).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(YEARS[i]));
-}
-
 /* --- methods --- */
 function vMethods(){
   const nG=STATES.slice(1).filter((s,i)=>raw(GID,i+1,NY-1)!=null).length;
@@ -671,9 +401,6 @@ function vMethods(){
 }
 
 /* ---------- boot ---------- */
-const hv=(location.hash||'').slice(1);if(VIEWS.some(v=>v[0]===hv))st.view=hv;
-window.addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(VIEWS.some(x=>x[0]===v)&&v!==st.view){st.view=v;render();}});
-let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!playT)renderMain();},180);});
 render();
 })();
 </script>

@@ -18,10 +18,12 @@ IE.fmt=function(v,kind){
   if(v==null||!isFinite(v))return 'n/a';
   const a=Math.abs(v);
   switch(kind){
+    case 'pct2':return (a>=100?v.toFixed(0):a>=10?v.toFixed(1):v.toFixed(2)).replace(/^-/,'−')+'%';  // two decimals below 10%, for small ratios
     case 'pct':return (a>=100?v.toFixed(0):a>=1||a===0?v.toFixed(1):v.toFixed(2)).replace(/^-/,'−')+'%';
     case 'pp':return (v>0?'+':'')+v.toFixed(1).replace(/^-/,'−')+' pp';
     case 'idx':return v.toFixed(1);
     case 'rs':return (v<0?'−':'')+'₹'+IE.IN(Math.round(a));
+    case 'pop':
     case 'num':return a>=1e7?(v/1e7).toFixed(2)+' crore':a>=1e5?(v/1e5).toFixed(2)+' lakh':IE.IN(Math.round(v));
     case 'cr':return (v<0?'−':'')+(a>=1e5?'₹'+(a/1e5).toFixed(2)+' lakh cr':a>=100?'₹'+IE.IN(Math.round(a))+' cr':'₹'+a.toFixed(2)+' cr');
     case 'x':return v.toFixed(2);
@@ -29,11 +31,11 @@ IE.fmt=function(v,kind){
   }
 };
 IE.tickFmt=function(kind,max){
-  if(kind==='pct')return v=>d3.format(max<5?'.1f':'.0f')(v).replace('-','−')+'%';
+  if(kind==='pct'||kind==='pct2')return v=>d3.format(max<5?'.1f':'.0f')(v).replace('-','−')+'%';
   if(kind==='idx'||kind==='x')return d3.format(max<5?'.1f':'.0f');
   if(kind==='pp')return v=>d3.format(max<5?'.1f':'.0f')(v).replace('-','−');
   if(kind==='rs')return v=>max>=2e5?'₹'+d3.format('.1f')(v/1e5)+'L':'₹'+IE.IN(v);
-  if(kind==='num')return v=>max>=1e7?d3.format('.1f')(v/1e7)+' cr':max>=1e5?d3.format(max<1e6?'.1f':'.0f')(v/1e5)+' lakh':IE.IN(v);
+  if(kind==='num'||kind==='pop')return v=>max>=1e7?d3.format('.1f')(v/1e7)+' cr':max>=1e5?d3.format(max<1e6?'.1f':'.0f')(v/1e5)+' lakh':IE.IN(v);
   if(kind==='cr')return v=>max>=2e5?'₹'+d3.format(max<1e6?'.1f':'.0f')(v/1e5)+'L cr':'₹'+IE.IN(v)+' cr';
   return d3.format('~s');
 };
@@ -60,11 +62,19 @@ IE.ctl=function(label,el){if(!el.id)el.id='c'+(++uid);return h('div',{class:'ctl
 IE.sel=function(opts,cur,on){const s=h('select',{onchange:e=>on(e.target.value)});opts.forEach(o=>{if(o.group){const g=h('optgroup',{label:o.group});o.items.forEach(x=>{const op=h('option',{value:x[0],text:x[1]});if(String(x[0])===String(cur))op.selected=true;g.appendChild(op);});s.appendChild(g);return;}
   const op=h('option',{value:o[0],text:o[1]});if(String(o[0])===String(cur))op.selected=true;s.appendChild(op);});return s;};
 IE.seg=function(opts,cur,on){const d=h('div',{class:'chips',role:'group'});opts.forEach(o=>d.appendChild(h('button',{class:'sm'+(o[0]===cur?' on':''),'aria-pressed':o[0]===cur?'true':'false',text:o[1],onclick:()=>on(o[0])})));return d;};
-IE.yearCtl=function(labels,idx,on,tagFn){
+/* single-year slider. opts.play adds a Play button that steps through the years (IE.stopPlay() halts it) */
+let playT=null;IE.stopPlay=()=>{if(playT){clearInterval(playT);playT=null;}};IE.playing=()=>!!playT;
+IE.yearCtl=function(labels,idx,on,tagFn,opts){
   const lab=h('span',{class:'yearval',text:labels[idx]}),tg=h('span',{class:'tag',text:tagFn?tagFn(idx):''});if(!tagFn)tg.style.display='none';
   const r=h('input',{type:'range',min:0,max:labels.length-1,step:1,value:idx,'aria-label':'Year'});r.id='yr'+(++uid);
-  r.addEventListener('input',()=>{const i=+r.value;lab.textContent=labels[i];if(tagFn)tg.textContent=tagFn(i);on(i);});
-  return h('div',{class:'ctl'},[h('label',{for:r.id,text:'Year'}),h('div',{style:'display:flex;align-items:center;gap:12px;flex-wrap:wrap'},[r,h('span',null,[lab,tg])])]);
+  const set=i=>{r.value=i;lab.textContent=labels[i];if(tagFn)tg.textContent=tagFn(i);on(i);};
+  r.addEventListener('input',()=>set(+r.value));
+  const box=h('div',{style:'display:flex;align-items:center;gap:12px;flex-wrap:wrap'},[r,h('span',null,[lab,tg])]);
+  if(opts&&opts.play){const n=labels.length,pb=h('button',{class:'sm',text:'Play years'});
+    pb.addEventListener('click',()=>{if(playT){IE.stopPlay();pb.textContent='Play years';return;}pb.textContent='Stop';let i=+r.value;if(i>=n-1)set(i=0);
+      playT=setInterval(()=>{if(i>=n-1||!document.body.contains(pb)){IE.stopPlay();pb.textContent='Play years';return;}set(++i);},opts.ms||700);});
+    box.appendChild(pb);}
+  return h('div',{class:'ctl'},[h('label',{for:r.id,text:'Year'}),box]);
 };
 IE.rangeCtl=function(labels,a,b,on,title){
   const n=labels.length,lab=h('span',{class:'yearval'}),fil=h('div',{class:'fil'});
@@ -88,17 +98,22 @@ IE.copyBtn=function(get){const b=h('button',{class:'sm',text:'Copy as CSV',oncli
 IE.table=function(head,rows){const t=h('table'),tr=h('tr');head.forEach(x=>tr.appendChild(h('th',{text:x})));t.appendChild(h('thead',null,[tr]));const tb=h('tbody');rows.forEach(r=>{const e=h('tr');r.forEach(x=>e.appendChild(h('td',{text:x==null?'':x})));tb.appendChild(e);});t.appendChild(tb);return h('div',{class:'tblwrap'},[t]);};
 
 /* ---------- x-axis ticks that never collide ---------- */
-IE.xTicks=function(labels,a,b,pw,align,minStep){
+IE.YEAR_STEPS=[1,2,5,10,20,25,50];
+IE.xTicks=function(labels,a,b,pw,align,minStep,steps0){
   align=align||(i=>i);const lw=d3.max(labels.slice(a,b+1),l=>String(l).length)*8.4+14;const fit=Math.max(1,Math.floor(pw/lw));
-  const steps=[1,2,3,4,6,12,24,36,48,60,120,240].filter(s=>s>=(minStep||1)),idx=d3.range(a,b+1);
+  const steps=(steps0||[1,2,3,4,6,12,24,36,48,60,120,240]).filter(s=>s>=(minStep||1)),idx=d3.range(a,b+1);
   for(const s of steps){let best=null;
-    for(let off=0;off<s;off++){const t=idx.filter(i=>((align(i)-off)%s+s)%s===0);if(t.length<=fit&&(!best||t.length>best.length))best=t;}
+    for(let off=0;off<(steps0?1:s);off++){/* year steps stay on round years; other steps may shift to fit more labels */const t=idx.filter(i=>((align(i)-off)%s+s)%s===0);if(t.length<=fit&&(!best||t.length>best.length))best=t;}
     if(best&&best.length)return best;}
   return [a];
 };
 function edgeFix(xa,W){xa.selectAll('text').each(function(){const b=this.getBBox();if(b.x+b.width>W-1){d3.select(this).attr('text-anchor','end').attr('x',W-1);}else if(b.x<1){d3.select(this).attr('text-anchor','start').attr('x',1);}});}
-function bands(g,x,y0,y1,list,bw){(list||[]).forEach(bd=>{const x0=x(bd.from)-bw/2,x1=x(bd.to)+bw/2;g.append('rect').attr('x',x0).attr('y',y0).attr('width',Math.max(2,x1-x0)).attr('height',y1-y0).attr('fill','#fff').attr('opacity',bd.op||.08);
-  if(bd.label)g.append('text').attr('x',(x0+x1)/2).attr('y',y0-6).attr('text-anchor','middle').attr('font-size',12).attr('fill',AX).text(bd.label);});}
+/* shaded period bands, e.g. estimates not yet audited: [{from,to,label,op}] in label indices */
+function bands(g,x,y0,y1,list,bw,a,b){let last=-1e9,up=false;(list||[]).forEach(bd=>{
+  const f=a==null?bd.from:Math.max(a,bd.from),t=b==null?bd.to:Math.min(b,bd.to);if(f>t)return;
+  const x0=x(f)-bw/2,x1=x(t)+bw/2;g.append('rect').attr('x',x0).attr('y',y0).attr('width',Math.max(2,x1-x0)).attr('height',y1-y0).attr('fill','#fff').attr('opacity',bd.op||.08);
+  if(bd.label){const cx=(x0+x1)/2;up=cx-last<34?!up:false;last=cx;g.append('text').attr('x',cx).attr('y',y0-(up?19:6)).attr('text-anchor','middle').attr('font-size',12).attr('fill',AX).text(bd.label);}});}
+const bandTop=o=>o.bands&&o.bands.some(b=>b.label)?36:16;
 function yAxis(svg,y,ticks,tf,m,W){const gg=svg.append('g').attr('class','gridl');ticks.forEach(t=>gg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t)));
   const ya=svg.append('g').attr('class','axis');ticks.forEach(t=>ya.append('text').attr('x',m.l-8).attr('y',y(t)+5).attr('text-anchor','end').text(tf(t)));
   if(y.domain()[0]<0&&y.domain()[1]>0)svg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(0)).attr('y2',y(0)).attr('stroke','#888');}
@@ -109,7 +124,7 @@ IE.lineChart=function(el,o){
   const L=o.labels,series=o.series.map(s=>Object.assign({},s,{pts:s.pts.filter(p=>p[1]!=null&&isFinite(p[1]))})).filter(s=>s.pts.length);
   el.textContent='';if(!series.length)return empty(el,o.empty);
   const W=el.clientWidth||600,wide=W>640,end=wide&&o.endLabels!==false&&series.length>1,Ht=o.height||(wide?420:330);
-  const m={t:o.bands&&o.bands.some(b=>b.label)?32:16,r:end?168:16,b:34,l:10};
+  const m={t:bandTop(o),r:end?168:16,b:34,l:10};
   const all=series.flatMap(s=>s.pts);let a=d3.min(all,p=>p[0]),b=d3.max(all,p=>p[0]);if(a===b){a=Math.max(0,a-1);b=Math.min(L.length-1,b+1);}
   let lo=d3.min(all,p=>p[1]),hi=d3.max(all,p=>p[1]);if(o.zero!==false&&o.kind!=='idx'){lo=Math.min(0,lo);hi=Math.max(0,hi);}if(lo===hi){lo-=1;hi+=1;}
   const y=d3.scaleLinear().domain([lo,hi]).nice(6).range([Ht-m.b,m.t]);const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));
@@ -117,9 +132,9 @@ IE.lineChart=function(el,o){
   const x=d3.scaleLinear().domain([a,b]).range([m.l+8,W-m.r-8]);
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Line chart');
   yAxis(svg,y,ticks,tf,m,W);
-  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r-16,o.align,o.minStep).forEach(i=>xa.append('text').attr('x',x(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
+  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r-16,o.align,o.minStep,o.steps).forEach(i=>xa.append('text').attr('x',x(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
   edgeFix(xa,W);
-  bands(svg.append('g'),x,m.t,Ht-m.b,o.bands,(x(a+1)-x(a))||10);
+  bands(svg.append('g'),x,m.t,Ht-m.b,o.bands,(x(a+1)-x(a))||10,a,b);
   const ln=d3.line().x(p=>x(p[0])).y(p=>y(p[1]));
   series.forEach(s=>{const segs=[];let cur=[];s.pts.forEach((p,i)=>{if(i&&p[0]!==s.pts[i-1][0]+1){segs.push(cur);cur=[];}cur.push(p);});segs.push(cur);
     segs.forEach(sg=>{if(sg.length>1)svg.append('path').attr('d',ln(sg)).attr('fill','none').attr('stroke',s.color).attr('stroke-width',s.bold?3:2).attr('stroke-dasharray',s.dash||null).attr('stroke-linejoin','round');
@@ -144,13 +159,13 @@ IE.barChart=function(el,o){
   const bars=(o.series||[]).map(clean).filter(s=>s.pts.length),lines=(o.lines||[]).map(clean).filter(s=>s.pts.length);
   el.textContent='';if(!bars.length&&!lines.length)return empty(el,o.empty);
   const all=bars.concat(lines).flatMap(s=>s.pts),a=d3.min(all,p=>p[0]),b=d3.max(all,p=>p[0]);
-  const W=el.clientWidth||600,Ht=o.height||(W>640?400:320),m={t:16,r:10,b:34,l:50};
+  const W=el.clientWidth||600,Ht=o.height||(W>640?400:320),m={t:bandTop(o),r:10,b:34,l:50};
   const y=d3.scaleLinear().domain([Math.min(0,d3.min(all,p=>p[1])),Math.max(0,d3.max(all,p=>p[1]))]).nice(6).range([Ht-m.b,m.t]);
   const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(bars.length>1?.22:.18),xc=i=>x(i)+x.bandwidth()/2;
   const xi=d3.scaleBand().domain(d3.range(Math.max(1,bars.length))).range([0,x.bandwidth()]).paddingInner(bars.length>1?.08:0);
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Bar chart');
-  yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step());
+  yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step(),a,b);
   const bw=Math.max(1,xi.bandwidth()),rx=Math.min(2,bw/3);
   bars.forEach((s,k)=>svg.append('g').selectAll('rect').data(s.pts).join('rect').attr('x',p=>x(p[0])+xi(k)).attr('width',bw)
     .attr('y',p=>Math.min(y(0),y(p[1]))).attr('height',p=>Math.max(1,Math.abs(y(p[1])-y(0)))).attr('rx',rx).attr('fill',s.color));
@@ -159,7 +174,7 @@ IE.barChart=function(el,o){
   lines.forEach(s=>{const segs=[];let cur=[];s.pts.forEach((p,i)=>{if(i&&p[0]!==s.pts[i-1][0]+1){segs.push(cur);cur=[];}cur.push(p);});segs.push(cur);
     segs.forEach(sg=>{if(sg.length>1)svg.append('path').attr('d',ln(sg)).attr('fill','none').attr('stroke',s.color).attr('stroke-width',2.5).attr('stroke-dasharray',s.dash||null).attr('stroke-linejoin','round');});
     if(s.pts.length<=40)s.pts.forEach(p=>svg.append('circle').attr('cx',xc(p[0])).attr('cy',y(p[1])).attr('r',3.5).attr('fill',s.color).attr('stroke','#000').attr('stroke-width',1.5));});
-  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
+  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep,o.steps).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
   edgeFix(xa,W);
   const hl=svg.insert('rect',':first-child').attr('y',m.t).attr('height',Ht-m.t-m.b).attr('width',x.step()).attr('fill','#fff').attr('opacity',.1).style('display','none');
   const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
@@ -191,14 +206,14 @@ IE.growthChart=function(host,o){
 /* ---------- column chart over time (one series; optional second series as a line) ---------- */
 IE.colChart=function(el,o){
   const L=o.labels,idx=d3.range(L.length).filter(i=>o.vals[i]!=null&&isFinite(o.vals[i]));el.textContent='';if(!idx.length)return empty(el,o.empty);
-  const a=idx[0],b=idx[idx.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?360:300),m={t:o.bands&&o.bands.some(b=>b.label)?32:16,r:10,b:34,l:50};
+  const a=idx[0],b=idx[idx.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?360:300),m={t:bandTop(o),r:10,b:34,l:50};
   const vals=idx.map(i=>o.vals[i]);const y=d3.scaleLinear().domain([Math.min(0,d3.min(vals)),Math.max(0,d3.max(vals))]).nice(5).range([Ht-m.b,m.t]);
   const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.18),xc=i=>x(i)+x.bandwidth()/2;
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Column chart');
-  yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step());
+  yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step(),a,b);
   svg.append('g').selectAll('rect').data(idx).join('rect').attr('x',i=>x(i)).attr('width',Math.max(1,x.bandwidth())).attr('y',i=>Math.min(y(0),y(o.vals[i]))).attr('height',i=>Math.max(1,Math.abs(y(o.vals[i])-y(0)))).attr('rx',Math.min(2,x.bandwidth()/3)).attr('fill',o.color||IE.PAL[0]);
-  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
+  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep,o.steps).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
   edgeFix(xa,W);
   const hl=svg.append('rect').attr('y',m.t).attr('height',Ht-m.t-m.b).attr('width',x.step()).attr('fill','#fff').attr('opacity',.12).style('display','none');
   const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
@@ -248,19 +263,19 @@ IE.comboChart=function(el,o){
 /* ---------- stacked columns over time ---------- */
 IE.stackChart=function(el,o){
   const L=o.labels;el.textContent='';const yrs=d3.range(L.length).filter(i=>o.keys.some(k=>k.vals[i]!=null));if(!yrs.length)return empty(el,o.empty);
-  const a=yrs[0],b=yrs[yrs.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?380:320),m={t:16,r:8,b:34,l:50};
+  const a=yrs[0],b=yrs[yrs.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?380:320),m={t:bandTop(o),r:8,b:34,l:50};
   const rows=d3.range(a,b+1).map(i=>{const r={i};o.keys.forEach((k,j)=>r[j]=k.vals[i]==null?0:k.vals[i]);return r;});
   const stk=d3.stack().keys(d3.range(o.keys.length)).offset(d3.stackOffsetDiverging)(rows);
   const lv=o.line?d3.range(a,b+1).map(i=>o.line.vals[i]).filter(v=>v!=null):[];const y=d3.scaleLinear().domain([Math.min(0,d3.min(stk,s=>d3.min(s,d=>d[0])),d3.min(lv)??0),Math.max(d3.max(stk,s=>d3.max(s,d=>d[1]))||1,d3.max(lv)??0)]).nice(5).range([Ht-m.b,m.t]);
   const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,y.domain()[1]);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.14),xc=i=>x(i)+x.bandwidth()/2;
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Stacked columns');
-  yAxis(svg,y,ticks,tf,m,W);
+  yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step(),a,b);
   stk.forEach((s,j)=>svg.append('g').selectAll('rect').data(s).join('rect').attr('x',d=>x(d.data.i)).attr('width',x.bandwidth()).attr('y',d=>y(Math.max(d[0],d[1]))+.5).attr('height',d=>Math.max(0,Math.abs(y(d[0])-y(d[1]))-1)).attr('fill',o.keys[j].color));
   if(o.line){const lp=d3.range(a,b+1).filter(i=>o.line.vals[i]!=null).map(i=>[xc(i),y(o.line.vals[i])]);
     svg.append('path').attr('d',d3.line()(lp)).attr('fill','none').attr('stroke',o.line.color||'#fff').attr('stroke-width',2.5).attr('stroke-linejoin','round');
     if(lp.length<=40)lp.forEach(q=>svg.append('circle').attr('cx',q[0]).attr('cy',q[1]).attr('r',3.5).attr('fill',o.line.color||'#fff').attr('stroke','#000').attr('stroke-width',1.5));}
-  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
+  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep,o.steps).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
   edgeFix(xa,W);
   const hl=svg.append('rect').attr('y',m.t).attr('height',Ht-m.t-m.b).attr('width',x.step()).attr('fill','#fff').attr('opacity',.1).style('display','none');
   const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
@@ -305,10 +320,35 @@ IE.classer=function(values,div){
   const th=[1,2,3,4,5].map(k=>d3.quantile(v,k/6));const u=th.filter((t,i)=>i===0||t>th[i-1]);const cols=SEQ.slice(SEQ.length-(u.length+1));
   return {th:u,cols,f:x=>cols[d3.bisectRight(u,x)]};
 };
-IE.scaleLegend=function(c,kind){const d=h('div',{class:'legend'});const F=v=>IE.fmt(v,kind);
+IE.scaleLegend=function(c,kind,noData){const d=h('div',{class:'legend'});const F=v=>IE.fmt(v,kind);
   const L=c.div?['below '+F(c.th[0]),F(c.th[0])+' to '+F(c.th[1]),F(c.th[1])+' to 0','0 to '+F(c.th[3]),F(c.th[3])+' to '+F(c.th[4]),F(c.th[4])+' and above']
     :c.cols.map((col,i)=>{const lo=i?F(c.th[i-1]):null,hi=i<c.th.length?F(c.th[i]):null;return lo==null?'below '+hi:hi==null?lo+' and above':lo+' to '+hi;});
-  c.cols.forEach((col,i)=>d.appendChild(h('span',{html:IE.sw(col)+esc(L[i])})));d.appendChild(h('span',{html:'<i class="sw" style="background:#161616;border:1px solid #555"></i>no data'}));return d;};
+  c.cols.forEach((col,i)=>d.appendChild(h('span',{html:IE.sw(col)+esc(L[i])})));d.appendChild(h('span',{html:'<i class="sw" style="background:#161616;border:1px solid #555"></i>'+esc(noData||'no data')}));return d;};
+
+/* ---------- scatter (bubbles sized by o.pts[].size, labelled by .label) ---------- */
+IE.scatterChart=function(el,o){
+  el.textContent='';const pts=o.pts.filter(p=>p.x!=null&&p.y!=null&&isFinite(p.x)&&isFinite(p.y));if(pts.length<2)return empty(el,o.empty);
+  const W=el.clientWidth||700,Ht=o.height||Math.min(640,Math.max(380,W*.62)),m={t:20,r:26,b:56,l:70},col=o.color||IE.PAL[0];
+  const pad=e=>{const d=(e[1]-e[0])||1;return [e[0]-d*.06,e[1]+d*.08];};
+  const x=d3.scaleLinear().domain(pad(d3.extent(pts,p=>p.x))).range([m.l,W-m.r]),y=d3.scaleLinear().domain(pad(d3.extent(pts,p=>p.y))).range([Ht-m.b,m.t]);
+  const fx=IE.tickFmt(o.xkind,Math.max(Math.abs(x.domain()[0]),Math.abs(x.domain()[1]))),fy=IE.tickFmt(o.ykind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));
+  const yt=y.ticks(6);m.l=Math.max(56,d3.max(yt,t=>fy(t).length)*8.6+12);x.range([m.l,W-m.r]);
+  const r=d3.scaleSqrt().domain([0,d3.max(pts,p=>p.size||0)||1]).range([5,W>640?30:20]);
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Scatter chart');
+  const gg=svg.append('g').attr('class','gridl'),ax=svg.append('g').attr('class','axis');
+  yt.forEach(t=>{gg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t));ax.append('text').attr('x',m.l-8).attr('y',y(t)+5).attr('text-anchor','end').text(fy(t));});
+  x.ticks(W>640?7:4).forEach(t=>{gg.append('line').attr('y1',m.t).attr('y2',Ht-m.b).attr('x1',x(t)).attr('x2',x(t));ax.append('text').attr('x',x(t)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(fx(t));});
+  edgeFix(ax,W);
+  if(x.domain()[0]<0&&x.domain()[1]>0)svg.append('line').attr('stroke','#888').attr('x1',x(0)).attr('x2',x(0)).attr('y1',m.t).attr('y2',Ht-m.b);
+  if(y.domain()[0]<0&&y.domain()[1]>0)svg.append('line').attr('stroke','#888').attr('y1',y(0)).attr('y2',y(0)).attr('x1',m.l).attr('x2',W-m.r);
+  if(o.xTitle){let t=o.xTitle;const mx=Math.floor((W-20)/8);if(t.length>mx)t=t.slice(0,mx-1)+'…';svg.append('text').attr('x',(m.l+W-m.r)/2).attr('y',Ht-8).attr('text-anchor','middle').attr('font-size',15).text(t);}
+  pts.sort((p,q)=>(q.size||0)-(p.size||0));
+  const g=svg.append('g').selectAll('g').data(pts).join('g').style('cursor',o.onClick?'pointer':null);
+  g.append('circle').attr('cx',p=>x(p.x)).attr('cy',p=>y(p.y)).attr('r',p=>r(p.size||0)).attr('fill',p=>p.color||col).attr('fill-opacity',.38).attr('stroke',p=>p.color||col).attr('stroke-width',1.5);
+  g.append('text').attr('x',p=>x(p.x)).attr('y',p=>y(p.y)+5).attr('text-anchor','middle').attr('font-size',13).attr('font-weight',600).attr('paint-order','stroke').attr('stroke','#000').attr('stroke-width',3).text(p=>p.label||'');
+  g.on('mousemove',(ev,p)=>IE.tip.show(o.tipHtml?o.tipHtml(p):'<div class="t">'+esc(p.name||p.label)+'</div><div class="r"><span>x</span><b>'+IE.fmt(p.x,o.xkind)+'</b></div><div class="r"><span>y</span><b>'+IE.fmt(p.y,o.ykind)+'</b></div>',ev)).on('mouseleave',IE.tip.hide);
+  if(o.onClick)g.on('click',(ev,p)=>o.onClick(p));
+};
 
 /* ---------- India state map (needs topojson + window.GEO) ---------- */
 IE.mapChart=function(el,o){
@@ -319,17 +359,17 @@ IE.mapChart=function(el,o){
   svg.selectAll('path').data(FEAT).join('path').attr('d',path).attr('fill',f=>{const v=o.values[look(f)];return v==null||!o.cl?'#161616':o.cl.f(v);}).attr('stroke','#000').attr('stroke-width',.8)
     .style('cursor',f=>o.onClick&&o.values[look(f)]!=null?'pointer':null)
     .on('mousemove',function(ev,f){const n=look(f),v=o.values[n];d3.select(this).attr('stroke','#fff').attr('stroke-width',1.6).raise();
-      IE.tip.show('<div class="t">'+esc(f.properties.n)+(n!==f.properties.n?' (data for '+esc(n)+')':'')+'</div><div class="r"><span>'+esc(o.title||'')+'</span><b>'+IE.fmt(v,o.kind)+'</b></div>'+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);})
+      IE.tip.show(o.tipHtml?o.tipHtml(f.properties.n,n,v):'<div class="t">'+esc(f.properties.n)+(n!==f.properties.n?' (data for '+esc(n)+')':'')+'</div><div class="r"><span>'+esc(o.title||'')+'</span><b>'+IE.fmt(v,o.kind)+'</b></div>'+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);})
     .on('mouseleave',function(){d3.select(this).attr('stroke','#000').attr('stroke-width',.8);IE.tip.hide();})
     .on('click',(ev,f)=>{const n=look(f);if(o.onClick&&o.values[n]!=null)o.onClick(n);});
 };
 
 /* ---------- simple view router on #hash ---------- */
-IE.router=function(views,start,render){let cur=(location.hash||'').slice(1);if(!views.some(v=>v[0]===cur))cur=start;
-  const api={get:()=>cur,go(v){cur=v;try{history.replaceState(null,'','#'+v);}catch(e){location.hash=v;}render();window.scrollTo(0,0);},
+IE.router=function(views,start,render,opts){IE.stopPlay();let cur=(location.hash||'').slice(1);if(!views.some(v=>v[0]===cur))cur=start;
+  const api={get:()=>cur,go(v){IE.stopPlay();cur=v;try{history.replaceState(null,'','#'+v);}catch(e){location.hash=v;}render();window.scrollTo(0,0);},
     tabs(el){el.textContent='';views.forEach(([id,n])=>el.appendChild(h('a',{href:'#'+id,text:n,'aria-current':cur===id?'page':null,onclick:e=>{e.preventDefault();api.go(id);}})));}};
-  window.addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(views.some(x=>x[0]===v)&&v!==cur){cur=v;render();}});
-  let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(render,180);});
+  window.addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(views.some(x=>x[0]===v)&&v!==cur){IE.stopPlay();cur=v;render();}});
+  let rz,lastW=innerWidth;window.addEventListener('resize',()=>{if(innerWidth===lastW)return;lastW=innerWidth;clearTimeout(rz);rz=setTimeout(()=>{if(!IE.playing())(opts&&opts.onResize||render)();},180);});
   return api;};
 
 IE.store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?d:v;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};

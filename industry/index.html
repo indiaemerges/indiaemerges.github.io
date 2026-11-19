@@ -190,7 +190,7 @@ function vProd(){
   const c=card((meas==='g'?'Industrial production growth':'Index of Industrial Production')+(meas==='g'?' (% change on a year earlier)':' ('+base+' = 100)'),true),b=h('div');
   const S=st.p.cons.filter(avail).map(cid=>({name:CON[cid].name,color:pCol(cid),bold:cid==='gen',pts:iipVals(cid,base,st.p.freq,meas,L).map((v,i)=>[i,v]).filter(p=>p[0]>=st.p.a&&p[0]<=st.p.b)}));
   const lg=h('div');c.appendChild(lg);c.appendChild(b);main.appendChild(c);
-  (meas==='g'?IE.growthChart:IE.lineChart)(b,{labels:L.map(m?ymLab:x=>x),series:S,kind,unit:meas==='g'?'% change on a year earlier, '+base+' base':'Index, '+base+' = 100',zero:meas==='g',align:m?(i=>+L[i].slice(0,4)*12+(+L[i].slice(5)-1)):(i=>+L[i].slice(0,4)),minStep:m&&st.p.b-st.p.a>48?12:1,tickLabel:m?(i=>st.p.b-st.p.a>48?L[i].slice(0,4):ymLab(L[i])):null,tipTitle:m?(i=>ymLong(L[i])):null,label:'IIP'});
+  (meas==='g'?IE.growthChart:IE.lineChart)(b,{labels:L.map(m?ymLab:x=>x),series:S,kind,unit:meas==='g'?'% change on a year earlier, '+base+' base':'Index, '+base+' = 100',zero:meas==='g',align:m?(i=>+L[i].slice(0,4)*12+(+L[i].slice(5)-1)):(i=>+L[i].slice(0,4)),steps:m?null:IE.YEAR_STEPS,minStep:m&&st.p.b-st.p.a>48?12:1,tickLabel:m?(i=>st.p.b-st.p.a>48?L[i].slice(0,4):ymLab(L[i])):null,tipTitle:m?(i=>ymLong(L[i])):null,label:'IIP'});
   if(meas!=='g'&&b.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S.map(s=>({name:s.name,color:s.color})),1));
   foot(c,'MoSPI Index of Industrial Production, '+BASES.find(x=>x.id===base).name+'. '+(m?'The latest month is a quick estimate, revised in later releases.':'Financial-year figures are MoSPI’s published annual indices.')+(missing.length?' Not available on this base: '+missing.map(x=>CON[x].name).join(', ')+'.':''));
   // ranking for the last period in the window
@@ -223,7 +223,7 @@ function vFac(){
   main.appendChild(h('div',{class:'row'},[IE.chips(st.f.sel.map(c=>({key:c,name:fname(c)})),k=>{st.f.sel=st.f.sel.filter(x=>x!==k);save();draw();},opts,v=>{st.f.sel.push(v);save();draw();},8,it=>fCol(it.key))]));
   const c=card(ANAME(ind)+' ('+unit.replace(/^% · .*/,'%')+')',true),lg=h('div'),b=h('div');c.appendChild(lg);c.appendChild(b);main.appendChild(c);
   const S=st.f.sel.map(k=>({name:fname(k),color:fCol(k),dash:k==='all'?'5 4':null,pts:d3.range(st.f.a,st.f.b+1).map(i=>[i,aval(ftarget(k),ind,i,m)])}));
-  const gr=m==='g'||m==='gk';(gr?IE.growthChart:IE.lineChart)(b,{labels:AY,series:gr?S.filter(x=>x.name!=='All industries'):S,lines:gr?S.filter(x=>x.name==='All industries'):null,kind,unit,zero:true,align:i=>+AY[i].slice(0,4),label:ANAME(ind)});
+  const gr=m==='g'||m==='gk';(gr?IE.growthChart:IE.lineChart)(b,{labels:AY,series:gr?S.filter(x=>x.name!=='All industries'):S,lines:gr?S.filter(x=>x.name==='All industries'):null,kind,unit,zero:true,align:i=>+AY[i].slice(0,4),steps:IE.YEAR_STEPS,label:ANAME(ind)});
   if(!gr&&b.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S.map(s=>({name:s.name,color:s.color})),1));
   foot(c,'Annual Survey of Industries, NIC 2008 industry groups, all-India. '+(m==='real'||m==='gk'?'Deflated with the all-India GDP deflator (2011-12 = 100), which is a broad price index, not an industry-specific one. ':'')+(m==='share'?'Share of the all-industries total for India. ':'')+'Values are as published by MoSPI; ₹ lakh figures are shown in ₹ crore. The survey year runs April to March.');
   const yi=st.f.b,g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
@@ -236,7 +236,7 @@ function vFac(){
     const top=NICS.map(k=>({k,v:aval({kind:'nic',code:k},ind,yi,m)||0})).sort((p,q)=>q.v-p.v).slice(0,6).map(x=>x.k);
     const keys=top.map((k,j)=>({name:NIC[k].short,color:PAL[[0,1,2,3,4,6][j]],vals:AY.map((y,i)=>i<st.f.a||i>st.f.b?null:aval({kind:'nic',code:k},ind,i,m))}));
     keys.push({name:'All other industries',color:PAL[7],vals:AY.map((y,i)=>{if(i<st.f.a||i>st.f.b)return null;const t=aval({kind:'all'},ind,i,m);if(t==null)return null;return t-keys.reduce((s,k)=>s+(k.vals[i]||0),0);})});
-    lgd.appendChild(IE.legend(keys));queue(()=>IE.stackChart(bb,{labels:AY,keys,kind,unit,totalName:'All industries',align:i=>+AY[i].slice(0,4)}));
+    lgd.appendChild(IE.legend(keys));queue(()=>IE.stackChart(bb,{labels:AY,keys,kind,unit,totalName:'All industries',align:i=>+AY[i].slice(0,4),steps:IE.YEAR_STEPS}));
     foot(cc,'The six largest industries in '+AY[yi]+'; the rest are grouped. Totals are the all-India figure for all industries.'); }
   flush();
   main.appendChild(h('h3',{text:'The numbers',style:'margin-top:24px'}));
@@ -274,7 +274,7 @@ function vStates(){
   const g=h('div',{class:'grid g2'});main.appendChild(g);
   { const cc=card(sn+': share of all-India factory sector (%)'),lg=h('div'),bb=h('div');cc.appendChild(lg);cc.appendChild(bb);g.appendChild(cc);
     const S=[['Gross Value Added','GVA'],['Total Number of Persons Engaged','Persons engaged'],['Factories in Operation','Factories in operation'],['Gross Fixed Capital Formation','Investment (GFCF)']].map(([n,l],j)=>({name:l,color:PAL[j],pts:d3.range(NAY).map(i=>[i,aval({kind:'state',name:s},n,i,'share')])}));
-    lg.appendChild(IE.legend(S,1));queue(()=>IE.lineChart(bb,{labels:AY,series:S,kind:'pct',unit:'% of all-India total',align:i=>+AY[i].slice(0,4),endLabels:false,label:sn+' shares'}));
+    lg.appendChild(IE.legend(S,1));queue(()=>IE.lineChart(bb,{labels:AY,series:S,kind:'pct',unit:'% of all-India total',align:i=>+AY[i].slice(0,4),steps:IE.YEAR_STEPS,endLabels:false,label:sn+' shares'}));
     foot(cc,'A state whose share of GVA is above its share of jobs has more output per worker than the national average.'); }
   { const mix=st.s.mix,cc=card('What '+sn+'’s factories make, '+AY[yi]+' (% of the state’s '+(mix==='Gross Value Added'?'GVA':mix==='Total Output'?'output':mix==='Factories in Operation'?'factories':'persons engaged')+')'),bb=h('div');
     cc.appendChild(h('div',{class:'row'},[IE.seg([['Gross Value Added','GVA'],['Total Number of Persons Engaged','Jobs'],['Total Output','Output'],['Factories in Operation','Factories']],mix,v=>{st.s.mix=v;save();draw();document.getElementById('profile').scrollIntoView();})]));

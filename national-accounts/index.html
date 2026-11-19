@@ -123,7 +123,7 @@ const later=[];const queue=f=>later.push(f);const flush=()=>{while(later.length)
 function card(title,full){const c=h('div',{class:'card'+(full?' full':'')});c.appendChild(h('h3',{text:title}));return c;}
 const NB=(n,s)=>s;
 const foot=(c,t)=>c.appendChild(h('p',{class:'note',text:t}));
-function axisOpts(P,a,b){const q=isQ(P[a]||P[0]),n=b-a;return {align:alignOf(P),minStep:q&&n>14?4:1,tickLabel:q?(i=>n>14?P[i].slice(0,7):qLab(P[i])):null,tipTitle:i=>pLong(P[i])};}
+function axisOpts(P,a,b){const q=isQ(P[a]||P[0]),n=b-a;return {align:alignOf(P),steps:q?null:IE.YEAR_STEPS,minStep:q&&n>14?4:1,tickLabel:q?(i=>n>14?P[i].slice(0,7):qLab(P[i])):null,tipTitle:i=>pLong(P[i])};}
 // shared bar controls: base, frequency, period range
 function baseCtl(s,onlyAnnual){
   bar.appendChild(IE.ctl('Series',IE.sel(Object.keys(BASES).map(k=>[k,BASES[k].name]),s.base,v=>{s.base=v;s.a=s.b=null;save();render();})));
@@ -167,7 +167,7 @@ function vOverview(){
     foot(c,'Each bar is the change in a component on a year earlier as a share of GDP a year earlier; imports subtract from GDP. The bars add up to real GDP growth of '+fmt(val('q','b22','gdp','g',qi),'pct')+'. The discrepancy is GDP minus the published components.'); }
   { const c=card('Seventy-five years of growth: real GDP growth by financial year (%)',true),b=h('div');c.appendChild(b);g.appendChild(c);
     const P=per('a','b11'),vals=P.map((p,i)=>val('a','b11','gdp','g',i));
-    queue(()=>IE.growthChart(b,{labels:P,series:[{name:'Real GDP growth',color:'#6FD3EA',pts:vals.map((v,i)=>[i,v])}],kind:'pct',unit:'% change on previous year, constant 2011-12 prices',align:i=>+P[i].slice(0,4),label:'Annual real GDP growth since 1951-52',tipTitle:i=>fyLong(P[i])+(D.rev.b11[i]?' · '+D.rev.b11[i]:'')}));
+    queue(()=>IE.growthChart(b,{labels:P,series:[{name:'Real GDP growth',color:'#6FD3EA',pts:vals.map((v,i)=>[i,v])}],kind:'pct',unit:'% change on previous year, constant 2011-12 prices',align:i=>+P[i].slice(0,4),steps:IE.YEAR_STEPS,label:'Annual real GDP growth since 1951-52',tipTitle:i=>fyLong(P[i])+(D.rev.b11[i]?' · '+D.rev.b11[i]:'')}));
     foot(c,'2011-12 base: MoSPI’s back series to 2010-11, then the 2011-12 series, whose last estimate for '+P[P.length-1]+' was the '+(D.rev.b11[P.length-1]||'').toLowerCase()+'. On the new 2022-23 base, real growth was '+Pa.slice(1).map((p,k)=>fmt(val('a','b22','gdp','g',k+1),'pct')+' in '+p).join(', ')+'.'); }
   flush();
 }
@@ -281,7 +281,7 @@ function barSave(){bar.appendChild(IE.ctl('Series',IE.sel(Object.keys(BASES).map
 function savPeriods(b){const P=per('a',b);return P.filter((p,i)=>lv('a',b,'sav',0,i)!=null||lv('a',b,'gfcf',0,i)!=null);}
 function vSave(){
   const b=st.v.base,PA=per('a',b),SP=savPeriods(b),from=SP[st.v.a],to=SP[st.v.b];
-  const rng=i=>PA[i]>=from&&PA[i]<=to,ax={align:i=>+PA[i].slice(0,4),tipTitle:i=>fyLong(PA[i])};
+  const rng=i=>PA[i]>=from&&PA[i]<=to,ax={align:i=>+PA[i].slice(0,4),steps:IE.YEAR_STEPS,tipTitle:i=>fyLong(PA[i])};
   const rate=(id,den,i)=>{const v=lv('a',b,id,0,i),d=lv('a',b,den,0,i);return v!=null&&d?v/d*100:null;};
   const c=card('Saving and fixed investment rates (% of national disposable income and % of GDP, current prices)',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
   const S=[['sav','gndi','Gross saving (% of GNDI)','#8FE39A'],['gfcf','gdp','Fixed investment, GFCF (% of GDP)','#6FD3EA']].map(([id,den,n,col])=>({name:n,color:col,pts:PA.map((p,i)=>[i,rng(i)?rate(id,den,i):null])}));
@@ -291,12 +291,12 @@ function vSave(){
   const instYears=PA.map((p,i)=>i).filter(i=>rng(i)&&INST.every(([k])=>lv('a',b,'sav@'+k,0,i)!=null));
   { const cc=card('Who saves: gross saving by sector (% of GNDI)'),l2=h('div'),b2=h('div');cc.appendChild(l2);cc.appendChild(b2);g.appendChild(cc);
     const keys=INST.map(([k,n,col])=>({name:n,color:col,vals:PA.map((p,i)=>instYears.includes(i)?rate('sav@'+k,'gndi',i):null)}));l2.appendChild(IE.legend(keys));
-    queue(()=>IE.stackChart(b2,{labels:PA,keys,kind:'pct',unit:'% of gross national disposable income, current prices',totalName:'Total gross saving',align:i=>+PA[i].slice(0,4),tipTitle:i=>fyLong(PA[i]),label:'Saving by sector'}));
+    queue(()=>IE.stackChart(b2,{labels:PA,keys,kind:'pct',unit:'% of gross national disposable income, current prices',totalName:'Total gross saving',align:i=>+PA[i].slice(0,4),steps:IE.YEAR_STEPS,tipTitle:i=>fyLong(PA[i]),label:'Saving by sector'}));
     foot(cc,'Government saving is negative when its current spending is larger than its current revenue. '+(b==='b11'?'Sector detail starts in 2011-12.':'')); }
   { const cc=card('Who invests: fixed investment by sector (% of GDP)'),l2=h('div'),b2=h('div');cc.appendChild(l2);cc.appendChild(b2);g.appendChild(cc);
     const yrs=PA.map((p,i)=>i).filter(i=>rng(i)&&INST.every(([k])=>lv('a',b,'gfcf@'+k,0,i)!=null));
     const keys=INST.map(([k,n,col])=>({name:n,color:col,vals:PA.map((p,i)=>yrs.includes(i)?rate('gfcf@'+k,'gdp',i):null)}));l2.appendChild(IE.legend(keys));
-    queue(()=>IE.stackChart(b2,{labels:PA,keys,kind:'pct',unit:'% of GDP, current prices',totalName:'Total fixed investment',align:i=>+PA[i].slice(0,4),tipTitle:i=>fyLong(PA[i]),label:'Fixed investment by sector'}));
+    queue(()=>IE.stackChart(b2,{labels:PA,keys,kind:'pct',unit:'% of GDP, current prices',totalName:'Total fixed investment',align:i=>+PA[i].slice(0,4),steps:IE.YEAR_STEPS,tipTitle:i=>fyLong(PA[i]),label:'Fixed investment by sector'}));
     foot(cc,'Fixed investment (gross fixed capital formation) by the sector that owns the asset. Households include unincorporated businesses and farms. '+(b==='b11'?'Sector detail starts in 2011-12.':'')); }
   const lastG=PA.map((p,i)=>i).filter(i=>rng(i)&&lv('a',b,'gcf.mfg',0,i)!=null).pop();
   if(lastG!=null){const cc=card('Where capital goes: capital formation by industry, '+PA[lastG]+' (% of total)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
