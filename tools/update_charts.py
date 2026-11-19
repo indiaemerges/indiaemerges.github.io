@@ -109,7 +109,7 @@ def archive_page(items):
 <body>
 <div class="wrap">
   <header class="top">
-    <a class="home" href="/">← india<span>emerges</span></a>
+    <a class="home" href="/">← <span class="fl">india</span><span class="em">emerges</span></a>
     <h1>Charts</h1>
     <p class="sub">Every chart of the day, newest first. Select a chart to open it at full size.</p>
   </header>

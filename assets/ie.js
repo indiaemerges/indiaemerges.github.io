@@ -31,6 +31,7 @@ IE.fmt=function(v,kind){
 IE.tickFmt=function(kind,max){
   if(kind==='pct')return v=>d3.format(max<5?'.1f':'.0f')(v).replace('-','−')+'%';
   if(kind==='idx'||kind==='x')return d3.format(max<5?'.1f':'.0f');
+  if(kind==='pp')return v=>d3.format(max<5?'.1f':'.0f')(v).replace('-','−');
   if(kind==='rs')return v=>max>=2e5?'₹'+d3.format('.1f')(v/1e5)+'L':'₹'+IE.IN(v);
   if(kind==='num')return v=>max>=1e7?d3.format('.1f')(v/1e7)+' cr':max>=1e5?d3.format(max<1e6?'.1f':'.0f')(v/1e5)+' lakh':IE.IN(v);
   if(kind==='cr')return v=>max>=2e5?'₹'+d3.format(max<1e6?'.1f':'.0f')(v/1e5)+'L cr':'₹'+IE.IN(v)+' cr';
@@ -193,19 +194,22 @@ IE.stackChart=function(el,o){
   const a=yrs[0],b=yrs[yrs.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?380:320),m={t:16,r:8,b:34,l:50};
   const rows=d3.range(a,b+1).map(i=>{const r={i};o.keys.forEach((k,j)=>r[j]=k.vals[i]==null?0:k.vals[i]);return r;});
   const stk=d3.stack().keys(d3.range(o.keys.length)).offset(d3.stackOffsetDiverging)(rows);
-  const y=d3.scaleLinear().domain([Math.min(0,d3.min(stk,s=>d3.min(s,d=>d[0]))),d3.max(stk,s=>d3.max(s,d=>d[1]))||1]).nice(5).range([Ht-m.b,m.t]);
+  const lv=o.line?d3.range(a,b+1).map(i=>o.line.vals[i]).filter(v=>v!=null):[];const y=d3.scaleLinear().domain([Math.min(0,d3.min(stk,s=>d3.min(s,d=>d[0])),d3.min(lv)??0),Math.max(d3.max(stk,s=>d3.max(s,d=>d[1]))||1,d3.max(lv)??0)]).nice(5).range([Ht-m.b,m.t]);
   const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,y.domain()[1]);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.14),xc=i=>x(i)+x.bandwidth()/2;
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Stacked columns');
   yAxis(svg,y,ticks,tf,m,W);
   stk.forEach((s,j)=>svg.append('g').selectAll('rect').data(s).join('rect').attr('x',d=>x(d.data.i)).attr('width',x.bandwidth()).attr('y',d=>y(Math.max(d[0],d[1]))+.5).attr('height',d=>Math.max(0,Math.abs(y(d[0])-y(d[1]))-1)).attr('fill',o.keys[j].color));
-  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(L[i]));
+  if(o.line){const lp=d3.range(a,b+1).filter(i=>o.line.vals[i]!=null).map(i=>[xc(i),y(o.line.vals[i])]);
+    svg.append('path').attr('d',d3.line()(lp)).attr('fill','none').attr('stroke',o.line.color||'#fff').attr('stroke-width',2.5).attr('stroke-linejoin','round');
+    if(lp.length<=40)lp.forEach(q=>svg.append('circle').attr('cx',q[0]).attr('cy',q[1]).attr('r',3.5).attr('fill',o.line.color||'#fff').attr('stroke','#000').attr('stroke-width',1.5));}
+  const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
   edgeFix(xa,W);
   const hl=svg.append('rect').attr('y',m.t).attr('height',Ht-m.t-m.b).attr('width',x.step()).attr('fill','#fff').attr('opacity',.1).style('display','none');
   const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
   function move(ev){const pt=d3.pointer(ev.touches?ev.touches[0]:ev,svg.node());const i=Math.max(a,Math.min(b,a+Math.floor((pt[0]-m.l)/x.step())));hl.style('display',null).attr('x',x(i)-x.step()*x.paddingInner()/2);
     let tot=0;const r=o.keys.map(k=>{const v=k.vals[i];if(v!=null)tot+=v;return '<div class="r"><span>'+IE.sw(k.color)+esc(k.name)+'</span><b>'+IE.fmt(v,o.kind)+'</b></div>';}).reverse().join('');
-    IE.tip.show('<div class="t">'+esc(L[i])+'</div>'+r+(o.noTotal?'':'<div class="r" style="border-top:1px solid #444;margin-top:4px;padding-top:4px"><span>'+esc(o.totalName||'Total')+'</span><b>'+IE.fmt(tot,o.kind)+'</b></div>')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);}
+    IE.tip.show('<div class="t">'+esc(o.tipTitle?o.tipTitle(i):L[i])+'</div>'+r+(o.line&&o.line.vals[i]!=null?'<div class="r" style="border-top:1px solid #444;margin-top:4px;padding-top:4px"><span>'+IE.sw(o.line.color||'#fff',1)+esc(o.line.name)+'</span><b>'+IE.fmt(o.line.vals[i],o.line.kind||o.kind)+'</b></div>':'')+(o.noTotal?'':'<div class="r" style="border-top:1px solid #444;margin-top:4px;padding-top:4px"><span>'+esc(o.totalName||'Total')+'</span><b>'+IE.fmt(o.total?o.total[i]:tot,o.kind)+'</b></div>')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);}
   ov.on('mousemove',move).on('touchstart',move,{passive:true}).on('touchmove',move,{passive:true}).on('mouseleave',()=>{hl.style('display','none');IE.tip.hide();});
 };
 
@@ -233,7 +237,7 @@ IE.rankBars=function(el,o){
 /* ---------- sparkline ---------- */
 IE.spark=function(vals){const pts=vals.map((v,i)=>[i,v]).filter(p=>p[1]!=null);if(pts.length<2)return '';const W=180,Ht=38,x=d3.scaleLinear().domain([0,vals.length-1]).range([3,W-5]),e=d3.extent(pts,p=>p[1]),y=d3.scaleLinear().domain(e[0]===e[1]?[e[0]-1,e[1]+1]:e).range([Ht-4,4]);
   const l=d3.line().x(p=>x(p[0])).y(p=>y(p[1]))(pts),z=pts[pts.length-1];const zero=e[0]<0&&e[1]>0?'<line x1="3" x2="'+(W-5)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="#555"/>':'';
-  return '<svg width="'+W+'" height="'+Ht+'" aria-hidden="true">'+zero+'<path d="'+l+'" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="'+x(z[0])+'" cy="'+y(z[1])+'" r="3.5" fill="#fff"/></svg>';};
+  return '<svg viewBox="0 0 '+W+' '+Ht+'" width="'+W+'" height="'+Ht+'" style="max-width:100%;height:auto;display:block" aria-hidden="true">'+zero+'<path d="'+l+'" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="'+x(z[0])+'" cy="'+y(z[1])+'" r="3.5" fill="#fff"/></svg>';};
 
 /* ---------- map colour classes: sequential (one hue) or diverging (cyan below zero, pink above) ---------- */
 const SEQ=['#12333b','#1d5562','#2f7b8c','#4ea3b6','#7fcfe2','#c4f1fb'],DIVC=['#c4f1fb','#63b8cb','#28606c','#6e2f55','#c56a9f','#fbc4e3'];

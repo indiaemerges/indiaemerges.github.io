@@ -31,7 +31,9 @@ a{color:inherit}
 
 header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 24px;padding:26px 0 0}
 .wm{font-family:var(--disp);font-weight:600;font-size:30px;letter-spacing:.2px;text-decoration:none;line-height:1}
-.wm span{color:var(--ink2);font-weight:500}
+.wm .em{color:var(--ink2);font-weight:500}
+.fl{background:linear-gradient(to bottom,#FF9933 0 55%,#fff 55% 68%,#138808 68%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#FF9933}
+
 nav.main{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:center;font-size:17px}
 nav.main a{text-decoration:none;color:var(--ink2)}
 nav.main a:hover{color:#fff}
@@ -60,7 +62,7 @@ h2{font-family:var(--disp);font-weight:600;font-size:clamp(32px,4vw,44px);margin
 .cm{color:var(--ink3);font-size:14.5px;margin-top:auto;padding-top:6px}
 .new{display:inline-block;vertical-align:middle;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid #fff;border-radius:6px;padding:1px 7px;margin-left:8px}
 .card.feat{padding:30px 30px 26px 34px}
-.cards.two{grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:18px}
+.cards.two{grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:18px}
 .more{color:var(--ink2);margin:22px 0 0}
 .card.feat .stripe{width:7px}
 .card.feat .ct{font-size:clamp(28px,3.4vw,36px)}
@@ -124,7 +126,7 @@ footer a:hover{color:#fff}
 <body>
 <div class="wrap">
   <header class="top">
-    <a class="wm" href="/" aria-label="indiaemerges home">india<span>emerges</span></a>
+    <a class="wm" href="/" aria-label="indiaemerges home"><span class="fl">india</span><span class="em">emerges</span></a>
     <nav class="main" aria-label="Main">
       <a href="#chart">Chart of the day</a>
       <a href="#dashboards">Dashboards</a>
@@ -162,9 +164,15 @@ footer a:hover{color:#fff}
   <section id="dashboards" aria-labelledby="h-dash">
     <div class="sh"><h2 id="h-dash">Dashboards</h2></div>
     <div class="cards two">
+      <a class="card feat" href="/national-accounts/" style="--cat:#F590C6">
+        <span class="stripe" aria-hidden="true"></span>
+        <span class="ct">National Accounts <span class="new">New</span></span>
+        <span class="cd">GDP growth every quarter and every year since 1950-51: which sectors produce it, what drives demand, and how much India saves and invests.</span>
+        <span class="cm">MoSPI National Accounts Statistics · Quarterly and annual</span>
+      </a>
       <a class="card feat" href="/industry/" style="--cat:#A99AF5">
         <span class="stripe" aria-hidden="true"></span>
-        <span class="ct">Industry <span class="new">New</span></span>
+        <span class="ct">Industry</span>
         <span class="cd">Monthly industrial production by sector, industry and use, plus the factory sector’s output, jobs, pay and investment by industry and state.</span>
         <span class="cm">MoSPI IIP and Annual Survey of Industries · Monthly and annual</span>
       </a>

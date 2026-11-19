@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>India National Accounts Dashboard · indiaemerges</title>
+<meta name="description" content="India's GDP, growth, sectors, demand, saving and investment from MoSPI's national accounts, quarterly and annual, from 1950-51 to the latest release.">
+<link rel="canonical" href="https://indiaemerges.com/national-accounts/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/ie.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="home" href="/">← <span class="fl">india</span><span class="em">emerges</span></a>
+    <h1>India National Accounts Dashboard</h1>
+    <p class="sub">How fast India's economy is growing, which sectors produce it, who spends it, and how much the country saves and invests, every quarter and back to 1950-51.</p>
+    <p class="asof" id="asof"></p>
+    <nav class="tabs" id="tabs" aria-label="Views"></nav>
+  </header>
+  <div class="bar" id="bar"></div>
+  <main id="main"><p class="empty">Loading data…</p></main>
+  <footer class="sitefoot">An <a href="/">indiaemerges.com</a> dashboard · Data: MoSPI National Accounts Statistics, via the eSankhyiki API</footer>
+</div>
+<div id="tip" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="/assets/ie.js"></script>
+<script>
+(async function(){
+"use strict";
+const {h,esc,fmt}=IE;
+const main=document.getElementById('main'),bar=document.getElementById('bar');
+let D;
+try{D=await fetch('data/nas.json').then(r=>{if(!r.ok)throw new Error();return r.json();});}
+catch(e){main.innerHTML='<p class="empty">The data file did not load. Reload the page to try again.</p>';return;}
+
+/* ================= catalogue ================= */
+const SECT=[['agri','Agriculture, forestry and fishing','Agriculture, fishing','#8FE39A'],['mining','Mining and quarrying','Mining','#A99AF5'],['mfg','Manufacturing','Manufacturing','#6FD3EA'],
+ ['util','Electricity, gas, water and utilities','Utilities','#F3E67C'],['cons','Construction','Construction','#F590C6'],['trade','Trade, hotels, transport and communication','Trade, hotels, transport','#C49A6C'],
+ ['fin','Finance, real estate and professional services','Finance, real estate','#7FA7F5'],['pub','Public administration, defence and other services','Public admin and other','#E8E8E8']];
+const DEM=[['pfce','Private consumption','#6FD3EA'],['gfce','Government consumption','#F3E67C'],['gfcf','Fixed investment','#F590C6'],['cis','Change in stocks','#8FE39A'],['val','Valuables','#A99AF5'],['exp','Exports','#F7A873'],['imp','Imports','#8E949A']];
+const INST=[['hh','Households and non-profits','#6FD3EA'],['pnfc','Public non-financial corporations','#F3E67C'],['prnfc','Private non-financial corporations','#F590C6'],['gg','General government','#8FE39A'],['pfc','Public financial corporations','#A99AF5'],['prfc','Private financial corporations','#F7A873']];
+const AGG={gdp:'GDP',gva:'Gross value added (GVA)',ntp:'Net taxes on products',tp:'Taxes on products',sub:'Subsidies on products',ndp:'Net domestic product',cfc:'Consumption of fixed capital',
+  gni:'Gross national income',pin:'Net primary income from abroad',gndi:'Gross national disposable income',oct:'Net other current transfers from abroad',sav:'Gross saving',gcf:'Gross capital formation'};
+const NAME={},COLOR={};Object.assign(NAME,AGG);
+SECT.forEach(([k,n,s,c])=>{NAME['gva.'+k]=n;COLOR['gva.'+k]=c;});DEM.forEach(([k,n,c])=>{NAME[k]=n;COLOR[k]=c;});INST.forEach(([k,n,c])=>{['gva','gfcf','sav','cfc'].forEach(p=>{COLOR[p+'@'+k]=c;});});
+const PSHORT={'Real Estate, Ownership of Dwelling & Professional Services':'Real estate and professional services','Transport, Storage, Communication & Services Related to Broadcasting':'Transport, storage, communication',
+ 'Trade, Repair, Hotels and Restaurants':'Trade, repair, hotels, restaurants','Electricity, Gas, Water Supply & Other Utility Services':'Electricity, gas, water, utilities','Agriculture, Livestock, Forestry and Fishing':'Agriculture, forestry, fishing'};
+const pretty=s=>(PSHORT[s]||s||'').replace(/ & /g,' and ').replace(/Services Related to Broadcasting/,'broadcasting services').replace(/Ownership of Dwelling/,'ownership of dwellings').replace(/\b([A-Z])([a-z]+)/g,(m,a,b,o)=>o?a.toLowerCase()+b:m);
+function nameOf(id){if(NAME[id])return NAME[id];const n=D.names[id]||{};const pre=id.split(/[.@]/)[0];
+  if(id.includes('@')){const k=id.split('@')[1];const lab=(INST.find(x=>x[0]===k)||[0,k])[1];return {gva:'GVA',gfcf:'Fixed investment',sav:'Gross saving',cfc:'Fixed capital consumption'}[pre]+': '+lab.charAt(0).toLowerCase()+lab.slice(1);}
+  const what=pre==='gcf'?'Capital formation in ':'';const nm=n.sub?pretty(n.sub):pretty(n.industry);return what?what+nm.charAt(0).toLowerCase()+nm.slice(1):nm;}
+SECT.forEach(([k,n])=>{NAME['gcf.'+k]='Capital formation in '+n.charAt(0).toLowerCase()+n.slice(1);});
+
+/* ================= periods and values ================= */
+const BASES={b22:{name:'2022-23 base (current series)',short:'2022-23 base'},b11:{name:'2011-12 base, back to 1950-51',short:'2011-12 base'}};
+const QM=[['April','June',0],['July','September',0],['October','December',0],['January','March',1]];
+const isQ=p=>p.length>7;
+const qLab=p=>p.slice(8)+' '+p.slice(0,7);
+const qLong=p=>{const q=+p.slice(9)-1,y=+p.slice(0,4)+QM[q][2];return QM[q][0]+' to '+QM[q][1]+' '+y+' ('+qLab(p)+')';};
+const pLab=p=>isQ(p)?qLab(p):p,pLong=p=>isQ(p)?qLong(p):p;
+const fyLong=p=>p+' (April '+p.slice(0,4)+' to March '+(+p.slice(0,4)+1)+')';
+const alignOf=P=>i=>isQ(P[i])?+P[i].slice(0,4)*4+(+P[i].slice(9)-1):+P[i].slice(0,4);
+function per(fr,b){return D[fr][b].periods;}
+const IDX={};function pidx(fr,b){const k=fr+b;if(!IDX[k]){IDX[k]={};per(fr,b).forEach((p,i)=>IDX[k][p]=i);}return IDX[k];}
+function prevI(fr,b,i){const P=per(fr,b),p=P[i];const q=isQ(p)?(+p.slice(0,4)-1)+'-'+String((+p.slice(0,4))%100).padStart(2,'0')+p.slice(7):(+p.slice(0,4)-1)+'-'+String((+p.slice(0,4))%100).padStart(2,'0');const j=pidx(fr,b)[q];return j==null?-1:j;}
+function L(fr,b,id,c){const it=D[fr][b].items[id];return it?it[c]:null;}
+function lv(fr,b,id,c,i){const a=L(fr,b,id,c);return a&&i>=0&&a[i]!=null?a[i]:null;}
+const has=(fr,b,id)=>!!D[fr][b].items[id];
+function sectSum(fr,b,c,i){let s=0;for(const [k] of SECT){const v=lv(fr,b,'gva.'+k,c,i);if(v==null)return null;s+=v;}return s;}
+const MEAS={
+ cur:{name:'Level, current prices',kind:'cr',unit:'₹ crore at current prices'},
+ con:{name:'Level, constant prices',kind:'cr',unit:b=>'₹ crore at '+(b==='b22'?'2022-23':'2011-12')+' prices'},
+ g:{name:'Real growth on a year earlier',kind:'pct',unit:'% change on a year earlier, constant prices'},
+ gn:{name:'Nominal growth on a year earlier',kind:'pct',unit:'% change on a year earlier, current prices'},
+ pgdp:{name:'Share of GDP, current prices',kind:'pct',unit:'% of GDP at current prices'},
+ pgva:{name:'Share of GVA, current prices',kind:'pct',unit:'% of total GVA at current prices'},
+ cg:{name:'Contribution to real GDP growth',kind:'pp',unit:'percentage points of real GDP growth'},
+ cgva:{name:'Contribution to real GVA growth',kind:'pp',unit:'percentage points of real GVA growth'},
+ defl:{name:'Implicit price deflator',kind:'idx',unit:b=>'Index, '+(b==='b22'?'2022-23':'2011-12')+' = 100'},
+ infl:{name:'Deflator inflation',kind:'pct',unit:'% change in the implicit price deflator on a year earlier'}};
+const munit=(m,b)=>typeof MEAS[m].unit==='function'?MEAS[m].unit(b):MEAS[m].unit;
+const NEG=new Set(['imp']);
+function val(fr,b,id,m,i){
+  const c0=lv(fr,b,id,0,i),c1=lv(fr,b,id,1,i),j=(m==='g'||m==='gn'||m==='infl'||m==='cg'||m==='cgva')?prevI(fr,b,i):-1;
+  switch(m){
+    case 'cur':return c0;
+    case 'con':return c1;
+    case 'g':{const p=lv(fr,b,id,1,j);return c1!=null&&p?(c1/p-1)*100:null;}
+    case 'gn':{const p=lv(fr,b,id,0,j);return c0!=null&&p?(c0/p-1)*100:null;}
+    case 'pgdp':{const g=lv(fr,b,'gdp',0,i);return c0!=null&&g?(NEG.has(id)?-1:1)*c0/g*100:null;}
+    case 'pgva':{const g=sectSum(fr,b,0,i);return c0!=null&&g?c0/g*100:null;}
+    case 'cg':{const p=lv(fr,b,id,1,j),g=lv(fr,b,'gdp',1,j);return c1!=null&&p!=null&&g?(NEG.has(id)?-1:1)*(c1-p)/g*100:null;}
+    case 'cgva':{const p=lv(fr,b,id,1,j),g=sectSum(fr,b,1,j);return c1!=null&&p!=null&&g?(c1-p)/g*100:null;}
+    case 'defl':return c0!=null&&c1?c0/c1*100:null;
+    case 'infl':{const p0=lv(fr,b,id,0,j),p1=lv(fr,b,id,1,j);return c0!=null&&c1&&p0!=null&&p1?((c0/c1)/(p0/p1)-1)*100:null;}
+  }return null;}
+// residual: GDP minus the published expenditure components (discrepancy as calculated here)
+function disc(fr,b,m,i){
+  if(m==='pgdp'){const g=lv(fr,b,'gdp',0,i);if(!g)return null;let s=0;for(const [k] of DEM){const v=val(fr,b,k,'pgdp',i);if(v==null)return null;s+=v;}return 100-s;}
+  if(m==='cg'){const g=val(fr,b,'gdp','g',i);if(g==null)return null;let s=0;for(const [k] of DEM){const v=val(fr,b,k,'cg',i);if(v==null)return null;s+=v;}return g-s;}
+  return null;}
+const sectorShare=(fr,b,k,i)=>{const t=sectSum(fr,b,0,i),v=lv(fr,b,'gva.'+k,0,i);return t&&v!=null?v/t*100:null;};
+
+/* ================= state ================= */
+const LQ=D.meta.latest.b22_q,LA=D.meta.latest.b22_a;
+const DEF0={g:{base:'b22',freq:'q',a:null,b:null},s:{base:'b22',freq:'q',meas:'g',sel:['gva','gva.agri','gva.mfg','gva.cons','gva.fin'],a:null,b:null},
+  d:{base:'b22',freq:'q',meas:'cg',a:null,b:null},v:{base:'b11',a:null,b:null},x:{base:'b22',freq:'q',meas:'g',sel:['gdp','pfce','gfcf'],a:null,b:null}};
+const SAVED=IE.store.get('ie-nas1',{});const st={};Object.keys(DEF0).forEach(k=>st[k]=Object.assign({},DEF0[k],SAVED[k]||{}));
+Object.values(st).forEach(s=>{if(!BASES[s.base])s.base='b22';if(s.freq&&!['a','q'].includes(s.freq))s.freq='q';});
+const save=()=>IE.store.set('ie-nas1',st);
+document.getElementById('asof').textContent='Quarterly GDP to '+qLong(LQ)+' · Annual estimates to '+LA+' · Updated '+D.meta.fetched.slice(0,10);
+
+const VIEWS=[['overview','Overview'],['growth','Growth'],['sectors','Sectors'],['demand','Demand'],['saving','Saving and investment'],['explore','All series'],['methods','Sources and methods']];
+const R=IE.router(VIEWS,'overview',render);
+const BARS={overview:()=>{},growth:barGrowth,sectors:barSect,demand:barDem,saving:barSave,explore:barX,methods:()=>{}};
+const VS={overview:vOverview,growth:vGrowth,sectors:vSect,demand:vDem,saving:vSave,explore:vX,methods:vMethods};
+function render(){R.tabs(document.getElementById('tabs'));bar.textContent='';IE.tip.hide();BARS[R.get()]();draw();}
+function draw(){main.textContent='';VS[R.get()]();}
+const later=[];const queue=f=>later.push(f);const flush=()=>{while(later.length)later.shift()();};
+function card(title,full){const c=h('div',{class:'card'+(full?' full':'')});c.appendChild(h('h3',{text:title}));return c;}
+const NB=(n,s)=>s;
+const foot=(c,t)=>c.appendChild(h('p',{class:'note',text:t}));
+function axisOpts(P,a,b){const q=isQ(P[a]||P[0]),n=b-a;return {align:alignOf(P),minStep:q&&n>14?4:1,tickLabel:q?(i=>n>14?P[i].slice(0,7):qLab(P[i])):null,tipTitle:i=>pLong(P[i])};}
+// shared bar controls: base, frequency, period range
+function baseCtl(s,onlyAnnual){
+  bar.appendChild(IE.ctl('Series',IE.sel(Object.keys(BASES).map(k=>[k,BASES[k].name]),s.base,v=>{s.base=v;s.a=s.b=null;save();render();})));
+  if(!onlyAnnual)bar.appendChild(IE.ctl('Frequency',IE.sel([['q','Quarterly'],['a','Financial year']],s.freq,v=>{s.freq=v;s.a=s.b=null;save();render();})));
+}
+function rangeCtl(s,P,defLen){if(s.a==null||s.b==null||s.b>=P.length||s.a>=s.b){s.b=P.length-1;s.a=defLen?Math.max(0,P.length-defLen):0;}
+  bar.appendChild(IE.rangeCtl(P.map(pLab),s.a,s.b,(a,b)=>{s.a=a;s.b=b;save();draw();},'Period shown'));}
+const fqName=fr=>fr==='q'?'quarter':'year';
+function numbers(head,rows,kind){main.appendChild(h('h3',{text:'The numbers',style:'margin-top:24px'}));
+  main.appendChild(h('div',{class:'row'},[IE.copyBtn(()=>IE.toCSV(head,rows))]));
+  main.appendChild(IE.table(head,rows.map(r=>[r[0]].concat(r.slice(1).map(v=>v==null?'':kind==='cr'?IE.IN(Math.round(v)):kind==='idx'?v.toFixed(1):(kind==='pp'?(v>0?'+':'')+v.toFixed(2):v.toFixed(1)))))));}
+function tile(box,k,v,u,sp,extra){const t=h('div',{class:'tile'});t.appendChild(h('div',{class:'k',text:k}));t.appendChild(h('div',{class:'v',text:v}));t.appendChild(h('div',{class:'u',text:u}));
+  if(sp)t.appendChild(h('div',{html:IE.spark(sp)}));if(extra)t.appendChild(h('div',{class:'b',text:extra}));box.appendChild(t);}
+
+/* ================= Overview ================= */
+function vOverview(){
+  const Pq=per('q','b22'),qi=Pq.length-1,Pa=per('a','b22'),ai=Pa.length-1,ql=qLong(LQ);
+  main.appendChild(h('h2',{text:'India’s economy at a glance: '+ql}));
+  const tiles=h('div',{class:'tiles'});main.appendChild(tiles);
+  const qs=id=>m=>d3.range(Pq.length).map(i=>val('q','b22',id,m,i));
+  [['gdp','g','Real GDP growth'],['gdp','gn','Nominal GDP growth'],['gva','g','Real GVA growth'],['gdp','infl','GDP deflator inflation']].forEach(([id,m,n])=>{
+    const s=qs(id)(m);tile(tiles,n+', on a year earlier',fmt(s[qi],'pct'),qLab(LQ),s,s[qi-1]!=null?'Previous quarter: '+fmt(s[qi-1],'pct'):null);});
+  { const s=qs('gfcf')('pgdp');tile(tiles,'Fixed investment, share of GDP',fmt(s[qi],'pct'),qLab(LQ)+', current prices',s,'A year earlier: '+fmt(s[prevI('q','b22',qi)],'pct'));}
+  { const s=qs('pfce')('pgdp');tile(tiles,'Private consumption, share of GDP',fmt(s[qi],'pct'),qLab(LQ)+', current prices',s,'A year earlier: '+fmt(s[prevI('q','b22',qi)],'pct'));}
+  { const g=val('a','b22','gdp','g',ai);tile(tiles,'Real GDP growth, '+LA,fmt(g,'pct'),D.rev.b22[ai]||'',null,ai>1?Pa[ai-1]+': '+fmt(val('a','b22','gdp','g',ai-1),'pct'):null);}
+  { const g=lv('a','b22','gdp',0,ai);tile(tiles,'GDP, '+LA,fmt(g,'cr'),'current prices, '+(D.rev.b22[ai]||'').toLowerCase(),null,'Nominal growth: '+fmt(val('a','b22','gdp','gn',ai),'pct'));}
+  main.appendChild(h('p',{class:'note',text:'Figures are from MoSPI’s national accounts on the 2022-23 base. The latest quarter and year are early estimates that MoSPI revises in later releases. Growth rates and shares are calculated from MoSPI’s published levels.'}));
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  { const c=card('Real GDP growth by quarter, 2022-23 and 2011-12 bases (% change on a year earlier)',true),lg=h('div'),b=h('div');c.appendChild(lg);c.appendChild(b);g.appendChild(c);
+    const P=[...new Set(per('q','b11').concat(Pq))].sort();
+    const mk=(bb,nm,col)=>({name:nm,short:nm,color:col,pts:P.map((p,i)=>{const j=pidx('q',bb)[p];return [i,j==null?null:val('q',bb,'gdp','g',j)];})});
+    const S=[mk('b22','2022-23 base','#6FD3EA'),mk('b11','2011-12 base','#F3E67C')];lg.appendChild(IE.legend(S,1));
+    queue(()=>IE.lineChart(b,Object.assign({labels:P.map(pLab),series:S,kind:'pct',unit:'% change on the same quarter a year earlier, constant prices',label:'Quarterly real GDP growth'},axisOpts(P,0,P.length-1))));
+    foot(c,'MoSPI moved the national accounts to a 2022-23 base in 2026. The two series overlap from '+qLab(Pq[4])+' to '+qLab(per('q','b11').slice(-1)[0])+'. They are not spliced: the new base measures some activities differently. The 2020-21 swings reflect the pandemic lockdowns.'); }
+  { const c=card('Real GVA growth by sector, '+qLab(LQ)+' (% change on a year earlier)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    queue(()=>IE.rankBars(b,{items:SECT.map(([k,n,s,col])=>({name:NB(n,s),full:n,v:val('q','b22','gva.'+k,'g',qi),color:col,k})).concat([{name:'All sectors (total GVA)',v:val('q','b22','gva','g',qi),color:'#fff',hl:true}]),kind:'pct',vname:qLab(LQ),unit:'% change on a year earlier, constant 2022-23 prices',rh:27,lw:Math.min(300,b.clientWidth*.55),onClick:d=>{if(!d.k)return;st.s.sel=['gva','gva.'+d.k];st.s.base='b22';st.s.freq='q';st.s.meas='g';save();R.go('sectors');}}));
+    foot(c,'The white bar is total GVA. Select a sector to follow it over time.'); }
+  { const c=card('What drove growth, '+qLab(LQ)+' (contribution to real GDP growth, percentage points)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    const items=DEM.map(([k,n,col])=>({name:n,v:val('q','b22',k,'cg',qi),color:col}));items.push({name:'Discrepancy and rounding',v:disc('q','b22','cg',qi),color:'#666'});
+    queue(()=>IE.rankBars(b,{items,keep:true,kind:'pp',vname:qLab(LQ),unit:'percentage points of real GDP growth on a year earlier',rh:27,lw:Math.min(260,b.clientWidth*.5)}));
+    foot(c,'Each bar is the change in a component on a year earlier as a share of GDP a year earlier; imports subtract from GDP. The bars add up to real GDP growth of '+fmt(val('q','b22','gdp','g',qi),'pct')+'. The discrepancy is GDP minus the published components.'); }
+  { const c=card('Seventy-five years of growth: real GDP growth by financial year (%)',true),b=h('div');c.appendChild(b);g.appendChild(c);
+    const P=per('a','b11'),vals=P.map((p,i)=>val('a','b11','gdp','g',i));
+    queue(()=>IE.colChart(b,{labels:P,vals,kind:'pct',name:'Real GDP growth',unit:'% change on previous year, constant 2011-12 prices',align:i=>+P[i].slice(0,4),color:'#6FD3EA',label:'Annual real GDP growth since 1951-52',tipTitle:i=>fyLong(P[i])+(D.rev.b11[i]?' · '+D.rev.b11[i]:'')}));
+    foot(c,'2011-12 base: MoSPI’s back series to 2010-11, then the 2011-12 series, whose last estimate for '+P[P.length-1]+' was the '+(D.rev.b11[P.length-1]||'').toLowerCase()+'. On the new 2022-23 base, real growth was '+Pa.slice(1).map((p,k)=>fmt(val('a','b22','gdp','g',k+1),'pct')+' in '+p).join(', ')+'.'); }
+  flush();
+}
+
+/* ================= Growth ================= */
+function barGrowth(){baseCtl(st.g);rangeCtl(st.g,per(st.g.freq,st.g.base),st.g.freq==='q'?(st.g.base==='b11'?24:20):(st.g.base==='b11'?0:0));}
+function vGrowth(){
+  const s=st.g,fr=s.freq,b=s.base,P=per(fr,b),ax=axisOpts(P,s.a,s.b),rng=i=>i>=s.a&&i<=s.b;
+  const c=card('GDP growth: real, nominal and prices (% change on a year earlier)',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+  const S=[['g','Real GDP growth','#6FD3EA','Real growth'],['gn','Nominal GDP growth','#F3E67C','Nominal growth'],['infl','GDP deflator inflation','#F590C6','Deflator inflation']].map(([m,n,col,sh])=>({name:n,short:sh,color:col,bold:m==='g',pts:P.map((p,i)=>[i,rng(i)?val(fr,b,'gdp',m,i):null])}));
+  lg.appendChild(IE.legend(S,1));IE.lineChart(bb,Object.assign({labels:P.map(pLab),series:S,kind:'pct',unit:'% change on the same '+fqName(fr)+' a year earlier',label:'GDP growth'},ax));
+  foot(c,BASES[b].name+'. Nominal growth is real growth plus the change in prices, measured by the GDP deflator (current-price GDP divided by constant-price GDP). '+(fr==='q'?'Quarterly growth compares a quarter with the same quarter a year earlier.':''));
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  { const cc=card('GDP, current and constant prices (₹ crore)'),l2=h('div'),b2=h('div');cc.appendChild(l2);cc.appendChild(b2);g.appendChild(cc);
+    const S2=[['cur','At current prices','#F3E67C'],['con','At constant '+(b==='b22'?'2022-23':'2011-12')+' prices','#6FD3EA']].map(([m,n,col])=>({name:n,color:col,pts:P.map((p,i)=>[i,rng(i)?val(fr,b,'gdp',m,i):null])}));
+    l2.appendChild(IE.legend(S2,1));queue(()=>IE.lineChart(b2,Object.assign({labels:P.map(pLab),series:S2,kind:'cr',unit:'₹ crore',endLabels:false,label:'GDP level'},ax)));
+    foot(cc,'The two lines meet in the base year, '+(b==='b22'?'2022-23':'2011-12')+'. The gap between them is the rise in prices since then.'); }
+  { const cc=card('GDP, GVA and national income: real growth (% change on a year earlier)'),l2=h('div'),b2=h('div');cc.appendChild(l2);cc.appendChild(b2);g.appendChild(cc);
+    const S2=[['gdp','GDP','#6FD3EA'],['gva','GVA','#F3E67C'],['gni','Gross national income','#8FE39A'],['ndp','Net domestic product','#A99AF5']].filter(x=>has(fr,b,x[0])).map(([id,n,col])=>({name:n,color:col,pts:P.map((p,i)=>[i,rng(i)?val(fr,b,id,'g',i):null])}));
+    l2.appendChild(IE.legend(S2,1));queue(()=>IE.lineChart(b2,Object.assign({labels:P.map(pLab),series:S2,kind:'pct',unit:'% change on a year earlier, constant prices',endLabels:false,label:'GDP, GVA, GNI growth'},ax)));
+    foot(cc,'GDP is GVA plus taxes on products minus subsidies. GNI adds net income earned abroad; NDP subtracts depreciation. '+(fr==='q'?'MoSPI publishes GNI and NDP only for financial years.':'')); }
+  flush();
+  const yrs=d3.range(s.a,s.b+1),ids=['gdp','gva','ntp','gni','ndp'].filter(id=>has(fr,b,id));
+  const rows=[];ids.forEach(id=>{rows.push([NAME[id]+', ₹ crore, current prices'].concat(yrs.map(i=>val(fr,b,id,'cur',i))));rows.push([NAME[id]+', ₹ crore, constant prices'].concat(yrs.map(i=>val(fr,b,id,'con',i))));rows.push([NAME[id]+', real growth %'].concat(yrs.map(i=>{const v=val(fr,b,id,'g',i);return v==null?null:+v.toFixed(2);})));});
+  main.appendChild(h('h3',{text:'The numbers',style:'margin-top:24px'}));main.appendChild(h('div',{class:'row'},[IE.copyBtn(()=>IE.toCSV(['Series'].concat(yrs.map(i=>P[i])),rows))]));
+  main.appendChild(IE.table(['Series'].concat(yrs.map(i=>pLab(P[i]))),rows.map(r=>[r[0]].concat(r.slice(1).map(v=>v==null?'':/%$/.test(r[0])?v.toFixed(1):IE.IN(Math.round(v)))))));
+  if(fr==='a')main.appendChild(h('p',{class:'note',text:'Estimate status of each year’s GDP: '+yrs.map(i=>P[i]+' '+(D.rev[b][i]||'')).filter(x=>!/Back series$/.test(x)).join('; ')+(yrs.some(i=>D.rev[b][i]==='Back series')?'. Years to 2010-11 are MoSPI’s back series.':'.')}));
+}
+
+/* ================= Sectors ================= */
+const SMEAS=[['pgva','Share of GVA'],['g','Real growth on a year earlier'],['cgva','Contribution to real GVA growth'],['cur','Level, current prices'],['con','Level, constant prices'],['infl','Price change (deflator)']];
+function barSect(){baseCtl(st.s);bar.appendChild(IE.ctl('Measure',IE.sel(SMEAS,st.s.meas,v=>{st.s.meas=v;save();draw();})));
+  rangeCtl(st.s,per(st.s.freq,st.s.base),st.s.freq==='q'?20:(st.s.base==='b11'?0:0));}
+function subIds(fr,b){return Object.keys(D[fr][b].items).filter(id=>/^gva\.[a-z-]+(\.[a-z-]+)?$/.test(id)&&!SECT.some(x=>'gva.'+x[0]===id));}
+const scol={};function sCol(id){if(id==='gva')return '#FFFFFF';if(COLOR[id])return COLOR[id];const used=new Set(st.s.sel.map(x=>scol[x]).filter(Boolean));if(!scol[id]){scol[id]=['#F7A873','#8E949A','#B7E07A','#E0A2F0'].find(c=>!used.has(c))||'#8E949A';}return scol[id];}
+function vSect(){
+  const s=st.s,fr=s.freq,b=s.base,m=s.meas,P=per(fr,b),ax=axisOpts(P,s.a,s.b),rng=i=>i>=s.a&&i<=s.b,kind=MEAS[m].kind,unit=munit(m,b);
+  const stacked=m==='pgva'||m==='cgva'||m==='cur'||m==='con';
+  if(stacked){
+    const c=card({pgva:'What India produces: share of GVA by sector (% of total GVA, current prices)',cgva:'Which sectors drove growth: contribution to real GVA growth (percentage points)',cur:'GVA by sector (₹ crore, current prices)',con:'GVA by sector (₹ crore, constant prices)'}[m],true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+    const keys=SECT.map(([k,n,sh,col])=>({name:sh,color:col,vals:P.map((p,i)=>rng(i)?(m==='pgva'?sectorShare(fr,b,k,i):val(fr,b,'gva.'+k,m,i)):null)}));
+    lg.appendChild(IE.legend(keys.slice()));
+    const line=m==='cgva'?{name:'Real GVA growth (sum of sectors)',color:'#fff',kind:'pct',vals:P.map((p,i)=>{if(!rng(i))return null;const j=prevI(fr,b,i),a=sectSum(fr,b,1,i),z=sectSum(fr,b,1,j);return a!=null&&z?(a/z-1)*100:null;})}:null;
+    IE.stackChart(bb,Object.assign({labels:P.map(pLab),keys,kind,unit,line,totalName:m==='pgva'?'Total':m==='cgva'?'Sum of contributions':'Total GVA',noTotal:m==='pgva',label:'GVA by sector'},ax));
+    foot(c,BASES[b].name+'. Eight broad sectors as MoSPI publishes them. '+(m==='pgva'?'Shares are of the sum of the eight sectors. ':'')+(m==='cgva'?'Each sector’s change on a year earlier as a share of total real GVA a year earlier; the white line is total real GVA growth. ':'')+(b==='b11'?'Before 2004-05 the back-series sectors do not add up exactly to MoSPI’s published GVA total, because MoSPI linked each sector to the 2011-12 base separately; see Sources and methods.':''));
+  }else{
+    const opts=[{group:'Total',items:[['gva','Total GVA']]},{group:'Broad sectors',items:SECT.map(x=>['gva.'+x[0],x[1]])},{group:'Detailed industries'+(fr==='q'?' (annual only)':''),items:subIds(fr,b).map(id=>[id,nameOf(id)])}].map(g=>({group:g.group,items:g.items.filter(x=>!s.sel.includes(x[0])&&has(fr,b,x[0]))})).filter(g=>g.items.length);
+    Object.keys(scol).forEach(k=>{if(!s.sel.includes(k))delete scol[k];});
+    main.appendChild(h('div',{class:'row'},[IE.chips(s.sel.map(id=>({key:id,name:id==='gva'?'Total GVA':nameOf(id)})),k=>{s.sel=s.sel.filter(x=>x!==k);save();draw();},opts,v=>{s.sel.push(v);save();draw();},8,it=>sCol(it.key))]));
+    const c=card(MEAS[m].name+' by sector ('+unit+')',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+    const S=s.sel.filter(id=>has(fr,b,id)).map(id=>({name:id==='gva'?'Total GVA':nameOf(id),short:id==='gva'?'Total GVA':(SECT.find(x=>'gva.'+x[0]===id)||[0,0,null])[2]||nameOf(id),color:sCol(id),dash:id==='gva'?'5 4':null,bold:id==='gva',pts:P.map((p,i)=>[i,rng(i)?val(fr,b,id,m,i):null])}));
+    IE.lineChart(bb,Object.assign({labels:P.map(pLab),series:S,kind,unit,label:'GVA by sector'},ax));if(bb.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S,1));
+    const miss=s.sel.filter(id=>!has(fr,b,id));
+    foot(c,BASES[b].name+'. The dashed white line is total GVA. '+(miss.length?'Not published at this frequency or on this base: '+miss.map(nameOf).join(', ')+'. ':'')+'Growth rates are calculated from MoSPI’s published levels.');
+  }
+  const li=s.b,lab=pLab(P[li]);
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  { const cc=card('Real GVA growth by sector, '+lab+' (% change on a year earlier)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
+    queue(()=>IE.rankBars(b2,{items:SECT.map(([k,n,sh,col])=>({name:NB(n,sh),full:n,v:val(fr,b,'gva.'+k,'g',li),color:col})).concat([{name:'Total GVA',v:val(fr,b,'gva','g',li),color:'#fff',hl:true}]),kind:'pct',vname:lab,unit:'% change on a year earlier, constant prices',lw:Math.min(300,b2.clientWidth*.55)}));
+    foot(cc,'The last '+fqName(fr)+' in the period selected.'); }
+  { const cc=card('Share of GVA by sector, '+lab+' (% of total GVA, current prices)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
+    const j=prevI(fr,b,li);
+    queue(()=>IE.rankBars(b2,{items:SECT.map(([k,n,sh,col])=>({name:NB(n,sh),full:n,v:sectorShare(fr,b,k,li),ref:j>=0?sectorShare(fr,b,k,j):null,color:col})),kind:'pct',vname:lab,rname:j>=0?pLab(P[j]):'',unit:'% of the sum of the eight sectors, current prices',lw:Math.min(300,b2.clientWidth*.55)}));
+    foot(cc,'White ticks mark the share a year earlier'+(j>=0?', '+pLab(P[j]):'')+'.'); }
+  flush();
+  const yrs=d3.range(s.a,s.b+1),ids=['gva'].concat(SECT.map(x=>'gva.'+x[0])).concat(fr==='a'?subIds(fr,b):[]);
+  const mm=m==='pgva'?'pgva':m,rows=ids.map(id=>[id==='gva'?'Total GVA':nameOf(id)].concat(yrs.map(i=>mm==='pgva'&&SECT.some(x=>'gva.'+x[0]===id)?sectorShare(fr,b,id.slice(4),i):val(fr,b,id,mm,i))));
+  numbers(['Sector ('+unit+')'].concat(yrs.map(i=>pLab(P[i]))),rows,kind);
+}
+
+/* ================= Demand ================= */
+const DMEAS=[['cg','Contribution to real GDP growth'],['pgdp','Share of GDP'],['g','Real growth on a year earlier'],['cur','Level, current prices'],['con','Level, constant prices'],['infl','Price change (deflator)']];
+function barDem(){baseCtl(st.d);bar.appendChild(IE.ctl('Measure',IE.sel(DMEAS,st.d.meas,v=>{st.d.meas=v;save();draw();})));
+  rangeCtl(st.d,per(st.d.freq,st.d.base),st.d.freq==='q'?20:(st.d.base==='b11'?30:0));}
+function vDem(){
+  const s=st.d,fr=s.freq,b=s.base,m=s.meas,P=per(fr,b),ax=axisOpts(P,s.a,s.b),rng=i=>i>=s.a&&i<=s.b,kind=MEAS[m].kind,unit=munit(m,b);
+  if(m==='cg'||m==='pgdp'){
+    const c=card(m==='cg'?'What drove GDP growth: contributions by type of spending (percentage points)':'Who spends India’s GDP: share by type of spending (% of GDP, current prices)',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+    const keys=DEM.map(([k,n,col])=>({name:n,color:col,vals:P.map((p,i)=>rng(i)?val(fr,b,k,m,i):null)}));keys.push({name:'Discrepancy',color:'#666',vals:P.map((p,i)=>rng(i)?disc(fr,b,m,i):null)});
+    lg.appendChild(IE.legend(keys));
+    const line=m==='cg'?{name:'Real GDP growth',color:'#fff',kind:'pct',vals:P.map((p,i)=>rng(i)?val(fr,b,'gdp','g',i):null)}:null;
+    IE.stackChart(bb,Object.assign({labels:P.map(pLab),keys,kind,unit,line,totalName:m==='cg'?'Sum: real GDP growth':'Total',noTotal:m==='pgdp',label:'GDP by expenditure'},ax));
+    foot(c,BASES[b].name+'. Imports are shown below zero because they subtract from GDP. '+(m==='cg'?'A component’s contribution is its change on a year earlier as a share of real GDP a year earlier; the white line is real GDP growth. ':'Above zero, the shares add up to more than 100% because imports are netted off below zero. ')+'The discrepancy is GDP minus the published components; MoSPI publishes it as a separate line in its releases.');
+  }else{
+    const c=card(MEAS[m].name+' by type of spending ('+unit+')',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+    const S=[{name:'GDP',color:'#FFFFFF',dash:'5 4',bold:true,pts:P.map((p,i)=>[i,rng(i)?val(fr,b,'gdp',m,i):null])}].concat(DEM.filter(x=>x[0]!=='cis'||m!=='g'&&m!=='infl').map(([k,n,col])=>({name:n,color:col,pts:P.map((p,i)=>[i,rng(i)?val(fr,b,k,m,i):null])})));
+    lg.appendChild(IE.legend(S,1));IE.lineChart(bb,Object.assign({labels:P.map(pLab),series:S,kind,unit,endLabels:false,label:'GDP by expenditure'},ax));
+    foot(c,BASES[b].name+'. The dashed white line is GDP. '+(m==='g'||m==='infl'?'Change in stocks is left out: it swings between positive and negative, so its growth rate is not meaningful. ':'')+'Calculated from MoSPI’s published levels.');
+  }
+  const li=s.b,lab=pLab(P[li]);
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  { const cc=card('Share of GDP, '+lab+' (% of GDP, current prices)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);const j=prevI(fr,b,li);
+    queue(()=>IE.rankBars(b2,{items:DEM.map(([k,n,col])=>({name:n,v:val(fr,b,k,'pgdp',li),ref:j>=0?val(fr,b,k,'pgdp',j):null,color:col})),keep:true,kind:'pct',vname:lab,rname:j>=0?pLab(P[j]):'',unit:'% of GDP, current prices; imports negative',lw:Math.min(240,b2.clientWidth*.48)}));
+    foot(cc,'White ticks mark the share a year earlier.'); }
+  { const cc=card('Real growth, '+lab+' (% change on a year earlier)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
+    queue(()=>IE.rankBars(b2,{items:[{name:'GDP',v:val(fr,b,'gdp','g',li),color:'#fff',hl:true}].concat(DEM.filter(x=>x[0]!=='cis').map(([k,n,col])=>({name:n,v:val(fr,b,k,'g',li),color:col}))),kind:'pct',vname:lab,unit:'% change on a year earlier, constant prices',lw:Math.min(240,b2.clientWidth*.48)}));
+    foot(cc,'Change in stocks is left out because its growth rate is not meaningful.'); }
+  flush();
+  const yrs=d3.range(s.a,s.b+1),rows=[['GDP'].concat(yrs.map(i=>m==='cg'?val(fr,b,'gdp','g',i):m==='pgdp'?100:val(fr,b,'gdp',m,i)))].concat(DEM.map(([k,n])=>[n].concat(yrs.map(i=>val(fr,b,k,m,i)))));
+  if(m==='cg'||m==='pgdp')rows.push(['Discrepancy'].concat(yrs.map(i=>disc(fr,b,m,i))));
+  numbers(['Component ('+unit+(m==='cg'?'; GDP row is real growth in %':'')+')'].concat(yrs.map(i=>pLab(P[i]))),rows,kind);
+}
+
+/* ================= Saving and investment ================= */
+function barSave(){bar.appendChild(IE.ctl('Series',IE.sel(Object.keys(BASES).map(k=>[k,BASES[k].name]),st.v.base,v=>{st.v.base=v;st.v.a=st.v.b=null;save();render();})));
+  const P=savPeriods(st.v.base);if(st.v.a==null||st.v.b==null||st.v.b>=P.length||st.v.a>=st.v.b){st.v.b=P.length-1;st.v.a=0;}
+  bar.appendChild(IE.rangeCtl(P,st.v.a,st.v.b,(a,b)=>{st.v.a=a;st.v.b=b;save();draw();},'Years shown'));}
+// years with a published gross saving figure
+function savPeriods(b){const P=per('a',b);return P.filter((p,i)=>lv('a',b,'sav',0,i)!=null||lv('a',b,'gfcf',0,i)!=null);}
+function vSave(){
+  const b=st.v.base,PA=per('a',b),SP=savPeriods(b),from=SP[st.v.a],to=SP[st.v.b];
+  const rng=i=>PA[i]>=from&&PA[i]<=to,ax={align:i=>+PA[i].slice(0,4),tipTitle:i=>fyLong(PA[i])};
+  const rate=(id,den,i)=>{const v=lv('a',b,id,0,i),d=lv('a',b,den,0,i);return v!=null&&d?v/d*100:null;};
+  const c=card('Saving and fixed investment rates (% of national disposable income and % of GDP, current prices)',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+  const S=[['sav','gndi','Gross saving (% of GNDI)','#8FE39A'],['gfcf','gdp','Fixed investment, GFCF (% of GDP)','#6FD3EA']].map(([id,den,n,col])=>({name:n,color:col,pts:PA.map((p,i)=>[i,rng(i)?rate(id,den,i):null])}));
+  lg.appendChild(IE.legend(S,1));IE.lineChart(bb,Object.assign({labels:PA,series:S,kind:'pct',unit:'% of the denominator shown, current prices',endLabels:false,zero:false,label:'Saving and investment rates'},ax));
+  foot(c,BASES[b].name+'. MoSPI states the saving rate as a share of gross national disposable income (GNDI), and fixed investment (gross fixed capital formation) as a share of GDP. MoSPI publishes saving and investment for financial years only, and the latest year of saving lags GDP by a year.');
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  const instYears=PA.map((p,i)=>i).filter(i=>rng(i)&&INST.every(([k])=>lv('a',b,'sav@'+k,0,i)!=null));
+  { const cc=card('Who saves: gross saving by sector (% of GNDI)'),l2=h('div'),b2=h('div');cc.appendChild(l2);cc.appendChild(b2);g.appendChild(cc);
+    const keys=INST.map(([k,n,col])=>({name:n,color:col,vals:PA.map((p,i)=>instYears.includes(i)?rate('sav@'+k,'gndi',i):null)}));l2.appendChild(IE.legend(keys));
+    queue(()=>IE.stackChart(b2,{labels:PA,keys,kind:'pct',unit:'% of gross national disposable income, current prices',totalName:'Total gross saving',align:i=>+PA[i].slice(0,4),tipTitle:i=>fyLong(PA[i]),label:'Saving by sector'}));
+    foot(cc,'Government saving is negative when its current spending is larger than its current revenue. '+(b==='b11'?'Sector detail starts in 2011-12.':'')); }
+  { const cc=card('Who invests: fixed investment by sector (% of GDP)'),l2=h('div'),b2=h('div');cc.appendChild(l2);cc.appendChild(b2);g.appendChild(cc);
+    const yrs=PA.map((p,i)=>i).filter(i=>rng(i)&&INST.every(([k])=>lv('a',b,'gfcf@'+k,0,i)!=null));
+    const keys=INST.map(([k,n,col])=>({name:n,color:col,vals:PA.map((p,i)=>yrs.includes(i)?rate('gfcf@'+k,'gdp',i):null)}));l2.appendChild(IE.legend(keys));
+    queue(()=>IE.stackChart(b2,{labels:PA,keys,kind:'pct',unit:'% of GDP, current prices',totalName:'Total fixed investment',align:i=>+PA[i].slice(0,4),tipTitle:i=>fyLong(PA[i]),label:'Fixed investment by sector'}));
+    foot(cc,'Fixed investment (gross fixed capital formation) by the sector that owns the asset. Households include unincorporated businesses and farms. '+(b==='b11'?'Sector detail starts in 2011-12.':'')); }
+  const lastG=PA.map((p,i)=>i).filter(i=>rng(i)&&lv('a',b,'gcf.mfg',0,i)!=null).pop();
+  if(lastG!=null){const cc=card('Where capital goes: capital formation by industry, '+PA[lastG]+' (% of total)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
+    const ids0=Object.keys(D.a[b].items).filter(id=>/^gcf\.[a-z-]+$/.test(id)&&!['gcf.trade','gcf.fin','gcf.pub'].includes(id));
+    const ids=ids0;const tot=d3.sum(ids,id=>lv('a',b,id,0,lastG)||0);
+    queue(()=>IE.rankBars(b2,{items:ids.map(id=>({name:nameOf(id).replace(/^Capital formation in /,'').replace(/^./,c=>c.toUpperCase()),v:lv('a',b,id,0,lastG)/tot*100,color:'#F590C6'})),kind:'pct',vname:PA[lastG],unit:'% of capital formation across industries, current prices',rh:25,lw:Math.min(330,b2.clientWidth*.6)}));
+    foot(cc,'Gross capital formation (fixed investment plus change in stocks) by the industry that uses the assets, as a share of the total across industries. MoSPI’s industry breakdown leaves out valuables.');}
+  { const cc=card('Depreciation and income from abroad (% of GDP)'),l2=h('div'),b2=h('div');cc.appendChild(l2);cc.appendChild(b2);g.appendChild(cc);
+    const S2=[{name:'Consumption of fixed capital',color:'#F3E67C',pts:PA.map((p,i)=>[i,rng(i)?rate('cfc','gdp',i):null])},{name:'Net primary income from abroad',color:'#A99AF5',pts:PA.map((p,i)=>[i,rng(i)?rate('pin','gdp',i):null])},{name:'Net transfers from abroad',color:'#8FE39A',pts:PA.map((p,i)=>[i,rng(i)?rate('oct','gdp',i):null])}];
+    l2.appendChild(IE.legend(S2,1));queue(()=>IE.lineChart(b2,Object.assign({labels:PA,series:S2,kind:'pct',unit:'% of GDP, current prices',endLabels:false,label:'Depreciation and flows from abroad'},ax)));
+    foot(cc,'Depreciation separates gross from net product. Net income from abroad (mostly interest, profits and dividends paid out) turns GDP into national income; net transfers, mostly remittances, turn it into disposable income.'); }
+  flush();
+  const yrs=PA.map((p,i)=>i).filter(rng),rows=[['Gross saving, % of GNDI'].concat(yrs.map(i=>rate('sav','gndi',i)))].concat(INST.map(([k,n])=>['Saving: '+n+', % of GNDI'].concat(yrs.map(i=>rate('sav@'+k,'gndi',i)))))
+    .concat([['Fixed investment, % of GDP'].concat(yrs.map(i=>rate('gfcf','gdp',i)))]).concat(INST.map(([k,n])=>['Fixed investment: '+n+', % of GDP'].concat(yrs.map(i=>rate('gfcf@'+k,'gdp',i)))));
+  numbers(['Series (current prices)'].concat(yrs.map(i=>PA[i])),rows,'pct');
+}
+
+/* ================= All series ================= */
+const XMEAS=[['g','Real growth on a year earlier'],['gn','Nominal growth on a year earlier'],['pgdp','Share of GDP'],['cur','Level, current prices'],['con','Level, constant prices'],['defl','Implicit price deflator'],['infl','Deflator inflation']];
+function barX(){baseCtl(st.x);bar.appendChild(IE.ctl('Measure',IE.sel(XMEAS,st.x.meas,v=>{st.x.meas=v;save();draw();})));rangeCtl(st.x,per(st.x.freq,st.x.base),st.x.freq==='q'?20:0);}
+function groupsOf(fr,b){const ids=Object.keys(D[fr][b].items);const G=[
+  ['Headline',['gdp','gva','ntp','tp','sub','ndp','cfc','gni','pin','gndi','oct']],['Spending (demand)',DEM.map(x=>x[0])],['Sectors (GVA)',SECT.map(x=>'gva.'+x[0])],
+  ['Detailed industries (GVA)',ids.filter(id=>/^gva\.[a-z-]+(\.[a-z-]+)?$/.test(id)&&!SECT.some(x=>'gva.'+x[0]===id))],['By institutional sector',ids.filter(id=>id.includes('@')).sort()],['Saving',['sav']],
+  ['Capital formation by industry (excludes valuables)',ids.filter(id=>/^gcf\./.test(id))]];
+  return G.map(([g,l])=>({group:g,items:l.filter(id=>ids.includes(id)).map(id=>[id,nameOf(id)])})).filter(g=>g.items.length);}
+const xcol={};function xCol(id){const used=new Set(st.x.sel.map(x=>xcol[x]).filter(Boolean));if(!xcol[id]){xcol[id]=(id==='gdp'&&!used.has('#FFFFFF')?'#FFFFFF':null)||['#6FD3EA','#F3E67C','#F590C6','#8FE39A','#A99AF5','#F7A873','#8E949A','#7FA7F5'].find(c=>!used.has(c))||'#8E949A';}return xcol[id];}
+function vX(){
+  const s=st.x,fr=s.freq,b=s.base,m=s.meas,P=per(fr,b),ax=axisOpts(P,s.a,s.b),rng=i=>i>=s.a&&i<=s.b,kind=MEAS[m].kind,unit=munit(m,b);
+  Object.keys(xcol).forEach(k=>{if(!s.sel.includes(k))delete xcol[k];});
+  const opts=groupsOf(fr,b).map(g=>({group:g.group,items:g.items.filter(x=>!s.sel.includes(x[0]))})).filter(g=>g.items.length);
+  main.appendChild(h('div',{class:'row'},[IE.chips(s.sel.map(id=>({key:id,name:nameOf(id)})),k=>{s.sel=s.sel.filter(x=>x!==k);save();draw();},opts,v=>{s.sel.push(v);save();draw();},8,it=>xCol(it.key))]));
+  const c=card(MEAS[m].name+' ('+unit+')',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+  const S=s.sel.filter(id=>has(fr,b,id)).map(id=>({name:nameOf(id),color:xCol(id),pts:P.map((p,i)=>[i,rng(i)?val(fr,b,id,m,i):null])}));
+  IE.lineChart(bb,Object.assign({labels:P.map(pLab),series:S,kind,unit,zero:m!=='defl',label:'National accounts series'},ax));if(bb.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S,1));
+  const miss=s.sel.filter(id=>!has(fr,b,id));
+  foot(c,BASES[b].name+', '+(fr==='q'?'quarterly':'financial years')+'. Levels are as published by MoSPI; growth rates, shares and deflators are calculated from them. '+(m==='pgdp'?'Imports are shown as a negative share. ':'')+(miss.length?'Not published at this frequency or on this base: '+miss.map(nameOf).join(', ')+'.':''));
+  const yrs=d3.range(s.a,s.b+1),rows=s.sel.filter(id=>has(fr,b,id)).map(id=>[nameOf(id)].concat(yrs.map(i=>val(fr,b,id,m,i))));
+  numbers(['Series ('+unit+')'].concat(yrs.map(i=>pLab(P[i]))),rows,kind);
+}
+
+/* ================= Methods ================= */
+function vMethods(){
+  const P11=per('a','b11'),Q11=per('q','b11'),P22=per('a','b22'),Q22=per('q','b22');
+  main.appendChild(h('div',{class:'methods',html:`
+<h2>Sources and methods</h2>
+<h3>Source</h3>
+<ul>
+<li><b>Data.</b> Ministry of Statistics and Programme Implementation (MoSPI), National Accounts Statistics, via its eSankhyiki API. All levels are shown exactly as published, in ₹ crore. Data last fetched ${esc(D.meta.fetched.slice(0,10))}.</li>
+<li><b>Latest estimate.</b> MoSPI revises each year several times: advance estimates, then provisional, then first, second and third revised (or final) estimates. For every year and every item the dashboard uses the latest estimate published. Quarterly figures are also revised; the API carries the latest.</li>
+</ul>
+<h3>Two series</h3>
+<ul>
+<li><b>2022-23 base.</b> MoSPI’s current series: quarterly from ${esc(qLab(Q22[0]))} to ${esc(qLab(Q22[Q22.length-1]))}, and financial years ${esc(P22[0])} to ${esc(P22[P22.length-1])}. Constant prices are at 2022-23 prices.</li>
+<li><b>2011-12 base.</b> The previous series, which MoSPI stopped updating when it introduced the new base: quarterly from ${esc(qLab(Q11[0]))} to ${esc(qLab(Q11[Q11.length-1]))}, and financial years ${esc(P11[0])} to ${esc(P11[P11.length-1])}. Years ${esc(P11[0])} to 2010-11 are MoSPI’s back series on the same 2011-12 base, which MoSPI publishes to extend that series back; from 2011-12 the dashboard uses the 2011-12 series itself. The last year, ${esc(P11[P11.length-1])}, is an advance estimate that was never revised.</li>
+<li><b>No splicing.</b> The two bases use different data sources and methods, so their levels differ: the 2022-23 base puts nominal GDP in ${esc(P22[P22.length-1])} at ${esc(fmt(lv('a','b22','gdp',0,P22.length-1),'cr'))}, against ${esc(fmt(lv('a','b11','gdp',0,P11.indexOf(P22[P22.length-1])),'cr'))} in the last estimate on the 2011-12 base. The dashboard never joins the two; choose a series with the Series control.</li>
+</ul>
+<h3>What is calculated here</h3>
+<ul>
+<li><b>Growth rates.</b> All growth rates are calculated from MoSPI’s published levels: constant-price levels for real growth, current-price levels for nominal growth. Quarterly growth compares a quarter with the same quarter a year earlier. For the 2022-23 base these match MoSPI’s published growth rates to one decimal place. The API’s growth rates for the 2011-12 series are cut off rather than rounded, and for some years come from older estimates than the levels, so the dashboard does not use them.</li>
+<li><b>Shares.</b> Shares of GDP use current-price GDP. Sector shares use the sum of the eight broad sectors. Saving is shown as a share of gross national disposable income, as MoSPI does.</li>
+<li><b>Contributions to growth.</b> A component’s change on a year earlier, at constant prices, divided by real GDP (or the sum of sectors for GVA) a year earlier. Imports count negatively.</li>
+<li><b>Deflators.</b> Current-price level divided by constant-price level, times 100.</li>
+<li><b>Discrepancy.</b> GDP minus the published expenditure components (private and government consumption, fixed investment, change in stocks, valuables, exports minus imports). MoSPI publishes these components and GDP but the API does not carry its discrepancy line, so the dashboard calculates it.</li>
+</ul>
+<h3>Things to watch</h3>
+<ul>
+<li><b>Tertiary sectors in the 2011-12 series.</b> In its revised estimates MoSPI published only the detailed groups for trade, hotels, transport and communication; finance, real estate and professional services; and public administration, defence and other services. For ${esc(D.meta.b11_summed_sectors[0])} to ${esc(D.meta.b11_summed_sectors[D.meta.b11_summed_sectors.length-1])} each of these three broad sectors is the sum of its published groups, so it reflects the same (latest) estimate as everything else.</li>
+<li><b>Back series.</b> Before 2004-05 the back-series sectors do not add up to MoSPI’s published GVA total. The gap is up to about 5% at current prices in the 1950s and narrows over time, because MoSPI linked each sector to the 2011-12 base separately. Sector shares use the sum of the sectors; growth of total GVA and GDP uses the published totals. Back-series expenditure components also do not add up to GDP, which shows as a larger discrepancy.</li>
+<li><b>Units label.</b> The API labels taxes and subsidies on products as ₹ lakh, but the figures are ₹ crore: taxes minus subsidies equals MoSPI’s net taxes exactly, and GVA plus net taxes equals GDP.</li>
+<li><b>Capital formation by industry.</b> MoSPI’s breakdown of gross capital formation by industry of use covers fixed investment and change in stocks but not valuables, so its total is smaller than gross capital formation in the spending accounts.</li>
+<li><b>What MoSPI publishes quarterly.</b> GDP, GVA by eight sectors and the main spending components. Income, saving, depreciation, institutional sectors and detailed industries are annual only.</li>
+</ul>
+<h3>Updates</h3>
+<ul>
+<li>A script in the site’s repository fetches the data from MoSPI, and a scheduled job re-runs it daily, so new quarterly releases appear without manual work.</li>
+</ul>`}));
+}
+
+render();
+})();
+</script>
+</body>
+</html>

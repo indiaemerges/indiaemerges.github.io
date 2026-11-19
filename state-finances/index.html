@@ -22,7 +22,9 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body)
 .wrap{max-width:1360px;margin:0 auto;padding:0 20px 80px}
 header.top{padding:22px 0 8px}
 .home{display:inline-block;font-family:var(--disp);font-weight:600;font-size:19px;text-decoration:none;color:#fff;margin-bottom:14px}
-.home span{color:var(--ink2);font-weight:500}
+.home .em{color:var(--ink2);font-weight:500}
+.fl{background:linear-gradient(to bottom,#FF9933 0 55%,#fff 55% 68%,#138808 68%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#FF9933}
+
 .home:hover{text-decoration:underline;text-underline-offset:3px}
 .sitefoot{border-top:1px solid var(--line);margin-top:40px;padding-top:18px;color:var(--ink3);font-size:15px}
 .sitefoot a{color:var(--ink2)}
@@ -129,7 +131,7 @@ sup.est{color:var(--ink2);font-size:11px;margin-left:2px}
 <body>
 <div class="wrap">
   <header class="top">
-    <a class="home" href="/">← india<span>emerges</span></a>
+    <a class="home" href="/">← <span class="fl">india</span><span class="em">emerges</span></a>
     <h1>India State Finances Explorer</h1>
     <p class="sub">Budgets of 31 states and union territories from 1990-91 to 2025-26, from the Reserve Bank of India's e-STATES database, set against each state's economy.</p>
     <nav class="tabs" id="tabs" aria-label="Views"></nav>
