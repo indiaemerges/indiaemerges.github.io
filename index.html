@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>indiaemerges</title>
+<meta name="description" content="Data journalism and open dashboards on India's economy, public finances, trade and industry, built on official statistics.">
+<meta property="og:title" content="indiaemerges">
+<meta property="og:description" content="India's economy, in its own numbers. Dashboards and data stories built on official statistics.">
+<meta property="og:url" content="https://indiaemerges.com/">
+<meta property="og:type" content="website">
+<link rel="canonical" href="https://indiaemerges.com/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* indiaemerges: black ground, white type; pastel colours appear only as dashboard category markers. */
+:root{
+  --bg:#000; --panel:#0e0e0e; --line:#262626; --line2:#444; --ink:#fff; --ink2:rgba(255,255,255,.74); --ink3:rgba(255,255,255,.52);
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --disp:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.5}
+a{color:inherit}
+.wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+:focus-visible{outline:2px solid #fff;outline-offset:3px;border-radius:4px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 24px;padding:26px 0 0}
+.wm{font-family:var(--disp);font-weight:600;font-size:30px;letter-spacing:.2px;text-decoration:none;line-height:1}
+.wm span{color:var(--ink2);font-weight:500}
+nav.main{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:center;font-size:17px}
+nav.main a{text-decoration:none;color:var(--ink2)}
+nav.main a:hover{color:#fff}
+nav.main a.btn{color:#000;background:#fff;border-radius:999px;padding:8px 16px;font-weight:600}
+nav.main a.btn:hover{background:rgba(255,255,255,.85)}
+
+.hero{padding:72px 0 64px;border-bottom:1px solid var(--line)}
+.hero h1{font-family:var(--disp);font-weight:600;font-size:clamp(42px,7vw,84px);line-height:1;margin:0;max-width:14ch;text-wrap:balance}
+.hero p{font-size:clamp(19px,2.2vw,23px);color:var(--ink2);max-width:52ch;margin:24px 0 0}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+.cta a{text-decoration:none;font-weight:600;border-radius:999px;padding:12px 22px;border:1px solid #fff}
+.cta a.p{background:#fff;color:#000}
+.cta a:not(.p):hover{background:#141414}
+
+section{padding:64px 0;border-bottom:1px solid var(--line)}
+.sh{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px;margin-bottom:28px}
+h2{font-family:var(--disp);font-weight:600;font-size:clamp(32px,4vw,44px);margin:0;line-height:1.1}
+.sh a{color:var(--ink2);font-size:17px}
+.sh a:hover{color:#fff}
+
+.card{position:relative;display:flex;flex-direction:column;gap:8px;text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 22px 20px 26px;overflow:hidden;transition:border-color .15s,background .15s}
+.card:hover{border-color:#fff;background:#141414}
+.card .stripe{position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--cat)}
+.ct{font-family:var(--disp);font-weight:600;font-size:23px;line-height:1.2}
+.cd{color:var(--ink2);font-size:16.5px}
+.cm{color:var(--ink3);font-size:14.5px;margin-top:auto;padding-top:6px}
+.new{display:inline-block;vertical-align:middle;font-family:var(--body);font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid #fff;border-radius:6px;padding:1px 7px;margin-left:8px}
+.card.feat{padding:30px 30px 26px 34px;margin-bottom:40px}
+.card.feat .stripe{width:7px}
+.card.feat .ct{font-size:clamp(28px,3.4vw,36px)}
+.card.feat .cd{font-size:19px;max-width:68ch}
+.card.feat .cm{font-size:15.5px}
+.groups{display:grid;gap:40px}
+.group h3{font-family:var(--disp);font-weight:600;font-size:22px;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+.dot{width:13px;height:13px;border-radius:3px;display:inline-block;flex:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+
+.posts{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.post{display:grid;grid-template-columns:150px 1fr;column-gap:28px;padding:22px 0;border-top:1px solid var(--line)}
+.post:first-child{border-top:0;padding-top:0}
+.post time{color:var(--ink3);font-size:16px;font-variant-numeric:tabular-nums;padding-top:4px;grid-row:span 2}
+.post a{font-family:var(--disp);font-weight:600;font-size:clamp(23px,2.6vw,28px);line-height:1.2;text-decoration:none;text-wrap:balance}
+.post a:hover{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:2px}
+.post p{color:var(--ink2);margin:8px 0 0;max-width:70ch}
+.sub{margin-top:30px;border:1px solid var(--line2);border-radius:12px;padding:22px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px 24px}
+.sub p{margin:0;color:var(--ink2);max-width:56ch}
+.sub p b{color:#fff}
+.sub a{text-decoration:none;font-weight:600;border-radius:999px;padding:11px 20px;background:#fff;color:#000;white-space:nowrap}
+
+.about{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:48px}
+.about p{margin:0 0 16px;max-width:62ch}
+.about .lead{font-size:clamp(21px,2.4vw,25px);line-height:1.4}
+.principles{list-style:none;margin:0;padding:0;display:grid;gap:18px}
+.principles li{border-left:2px solid #fff;padding-left:16px}
+.principles b{display:block;font-family:var(--disp);font-size:20px;font-weight:600}
+.principles span{color:var(--ink2);font-size:16.5px}
+.srcs{color:var(--ink2);font-size:16px;margin-top:26px}
+
+footer{padding:36px 0 56px;color:var(--ink3);font-size:15.5px;display:flex;flex-wrap:wrap;gap:10px 28px;justify-content:space-between}
+footer nav{display:flex;flex-wrap:wrap;gap:8px 22px}
+footer a{color:var(--ink2);text-decoration:none}
+footer a:hover{color:#fff}
+
+@media (max-width:760px){
+  html,body{font-size:17px}
+  .wrap{padding:0 18px}
+  .hero{padding:48px 0 44px}
+  section{padding:48px 0}
+  .about{grid-template-columns:1fr;gap:32px}
+  .post{grid-template-columns:1fr}
+  .post time{grid-row:auto;padding:0 0 4px}
+  .card.feat{padding:24px 22px 22px 28px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="wm" href="/" aria-label="indiaemerges home">india<span>emerges</span></a>
+    <nav class="main" aria-label="Main">
+      <a href="#dashboards">Dashboards</a>
+      <a href="#writing">Writing</a>
+      <a href="#about">About</a>
+      <a class="btn" href="https://indiaemerges.substack.com/subscribe">Subscribe</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <h1>India’s economy, in its own numbers.</h1>
+    <p>Open dashboards and data stories on India’s growth, public finances, trade, industry and energy, built on the government’s own statistics.</p>
+    <div class="cta">
+      <a class="p" href="#dashboards">Explore the dashboards</a>
+      <a href="#writing">Read the latest story</a>
+    </div>
+  </div>
+
+  <section id="dashboards" aria-labelledby="h-dash">
+    <div class="sh"><h2 id="h-dash">Dashboards</h2><a href="/india-data-dashboard/explore/">Open the data explorer →</a></div>
+        <a class="card feat" href="/state-finances/" style="--cat:#6FD3EA">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">State Finances Explorer <span class="new">New</span></span>
+          <span class="cd">Budgets of 31 states and union territories from 1990-91 to 2025-26: receipts, spending, deficits and 355 budget heads, set against each state’s economy, with maps and state-by-state comparison.</span>
+          <span class="cm">RBI e-STATES, MoSPI · Annual</span>
+        </a>
+      <div class="groups">
+      <div class="group">
+        <h3><i class="dot" style="background:#F3E67C" aria-hidden="true"></i>Economy and money</h3>
+        <div class="cards">
+        <a class="card" href="/india-data-dashboard/dashboards/gdp-fy26-provisional/" style="--cat:#F3E67C">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">GDP 2025-26: provisional estimates</span>
+          <span class="cd">MoSPI’s provisional estimates released on 5 June 2026: 7.7% real GDP growth, the fourth-quarter sector breakdown, expenditure components and 29 leading indicators.</span>
+          <span class="cm">MoSPI NAS · Annual</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/gdp-growth/" style="--cat:#F3E67C">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">GDP and national accounts</span>
+          <span class="cd">GDP, GVA, consumption, investment, trade, national income and savings.</span>
+          <span class="cm">MoSPI NAS, World Bank · Quarterly</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/inflation/" style="--cat:#F3E67C">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Inflation: CPI and WPI</span>
+          <span class="cd">Consumer and wholesale price indices across 600+ items, with state-level CPI and commodity-level WPI.</span>
+          <span class="cm">MoSPI CPI and WPI · Monthly</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/rbi-monetary/" style="--cat:#F3E67C">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">RBI monetary policy</span>
+          <span class="cd">Policy rates, forex reserves, monetary aggregates and banking statistics.</span>
+          <span class="cm">RBI DBIE · Monthly</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/banking/" style="--cat:#F3E67C">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Banking and credit</span>
+          <span class="cd">Bank credit, deposits, gross NPA ratio, sectoral credit deployment and credit-to-GDP.</span>
+          <span class="cm">RBI DBIE · Annual</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/trade/" style="--cat:#F3E67C">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">International trade</span>
+          <span class="cd">Exports, imports, the trade balance and trading partners.</span>
+          <span class="cm">World Bank, MoSPI NAS · Annual</span>
+        </a>
+        </div>
+      </div>
+      <div class="group">
+        <h3><i class="dot" style="background:#F590C6" aria-hidden="true"></i>Jobs and society</h3>
+        <div class="cards">
+        <a class="card" href="/india-data-dashboard/dashboards/employment/" style="--cat:#F590C6">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Employment and labour</span>
+          <span class="cd">Unemployment rate, labour force participation, worker population ratio, wages and worker distribution.</span>
+          <span class="cm">MoSPI PLFS · Quarterly</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/population/" style="--cat:#F590C6">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Population and demographics</span>
+          <span class="cd">Census 2011 population, literacy, urbanisation and household amenities by state and district.</span>
+          <span class="cm">Census of India · Decennial</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/human-development/" style="--cat:#F590C6">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Human development</span>
+          <span class="cd">Literacy, life expectancy, infant mortality, labour force participation and inequality.</span>
+          <span class="cm">World Bank WDI · Annual</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/poverty-mpi/" style="--cat:#F590C6">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Multidimensional poverty</span>
+          <span class="cd">State-wise Multidimensional Poverty Index, headcount ratio and intensity, NFHS-4 against NFHS-5.</span>
+          <span class="cm">NITI Aayog · Per NFHS round</span>
+        </a>
+        </div>
+      </div>
+      <div class="group">
+        <h3><i class="dot" style="background:#A99AF5" aria-hidden="true"></i>Industry</h3>
+        <div class="cards">
+        <a class="card" href="/india-data-dashboard/dashboards/industrial/" style="--cat:#A99AF5">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Industrial production</span>
+          <span class="cd">Monthly sectoral and use-based indices for mining, manufacturing and electricity.</span>
+          <span class="cm">MoSPI IIP · Monthly</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/manufacturing/" style="--cat:#A99AF5">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Manufacturing: ASI</span>
+          <span class="cd">GVA, factories, workers, wages, capital and productivity across 28 industry groups, 2008-09 to 2023-24.</span>
+          <span class="cm">MoSPI ASI · Annual</span>
+        </a>
+        </div>
+      </div>
+      <div class="group">
+        <h3><i class="dot" style="background:#F7A873" aria-hidden="true"></i>Energy</h3>
+        <div class="cards">
+        <a class="card" href="/india-data-dashboard/dashboards/energy-flow/" style="--cat:#F7A873">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Energy balance and flows</span>
+          <span class="cd">India’s energy balance as flow diagrams: production, transformation and end use across all fuels.</span>
+          <span class="cm">MoSPI Energy Statistics · Annual</span>
+        </a>
+        <a class="card" href="/india-data-dashboard/dashboards/petroleum/" style="--cat:#F7A873">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Petroleum and refining</span>
+          <span class="cd">Crude production, refinery throughput and fuel consumption.</span>
+          <span class="cm">PPAC · Monthly</span>
+        </a>
+        </div>
+      </div>
+      <div class="group">
+        <h3><i class="dot" style="background:#8FE39A" aria-hidden="true"></i>Agriculture</h3>
+        <div class="cards">
+        <a class="card" href="/india-data-dashboard/dashboards/agriculture/" style="--cat:#8FE39A">
+          <span class="stripe" aria-hidden="true"></span>
+          <span class="ct">Agriculture and food security</span>
+          <span class="cd">Foodgrain output, crop trends, minimum support prices, FCI buffer stocks and monsoon rainfall, 2000-01 to 2024-25.</span>
+          <span class="cm">MoAFW, FCI, IMD · Annual</span>
+        </a>
+        </div>
+      </div>
+      </div>
+  </section>
+
+  <section id="writing" aria-labelledby="h-writing">
+    <div class="sh"><h2 id="h-writing">Writing</h2><a href="https://indiaemerges.substack.com/archive">All stories →</a></div>
+    <ul class="posts">
+      <!-- POSTS:START -->
+      <li class="post">
+        <time datetime="2026-08-27">27 Aug 2026</time>
+        <a href="https://indiaemerges.substack.com/p/four-indias-mapped-by-budgets">Four Indias, mapped by budgets</a>
+        <p>Thirty years of state finances reveal how Indian states govern themselves</p>
+      </li>
+      <li class="post">
+        <time datetime="2026-06-12">12 Jun 2026</time>
+        <a href="https://indiaemerges.substack.com/p/the-molecules-india-should-make-the">The Molecules India Should Make: The Economics of Coal Gasification</a>
+        <p>The science of coal gasification is maturing. Can India crack the economics to produce its own chemicals?</p>
+      </li>
+      <li class="post">
+        <time datetime="2026-04-15">15 Apr 2026</time>
+        <a href="https://indiaemerges.substack.com/p/the-molecules-india-doesnt-make-part">The Molecules India Doesn&#x27;t Make - Part 1: The Science of Coal Gasification</a>
+        <p>India has the coal. It just doesn&#x27;t make the molecules. When coal is gasified, it becomes fertiliser, methanol and industrial feedstock. Can India crack the chemistry?</p>
+      </li>
+      <li class="post">
+        <time datetime="2026-04-08">8 Apr 2026</time>
+        <a href="https://indiaemerges.substack.com/p/indias-fertiliser-dependency-can">India&#x27;s Fertiliser Dependency: Can India Wean Itself Off Imports?</a>
+        <p>India spends around $30 billion a year keeping urea cheap for farmers. Most of that money flows out as imported gas — sourced from the same Gulf region whose shipping lanes are now under stress.</p>
+      </li>
+      <!-- POSTS:END -->
+    </ul>
+    <div class="sub">
+      <p><b>Forging India</b> is the indiaemerges newsletter: long reads on how India is building its economy, each one grounded in data. Free, in your inbox.</p>
+      <a href="https://indiaemerges.substack.com/subscribe">Subscribe on Substack</a>
+    </div>
+  </section>
+
+  <section id="about" aria-labelledby="h-about">
+    <div class="sh"><h2 id="h-about">About</h2></div>
+    <div class="about">
+      <div>
+        <p class="lead">indiaemerges is an independent data journalism project about how India is building its economy: where growth comes from, how governments raise and spend money, what the country makes, trades and imports, and what that means for the people who live there.</p>
+        <p>Its dashboards let anyone explore the numbers behind the headlines, from state budgets to industrial output. Its stories, published as the Forging India newsletter, follow one question at a time, such as why India imports fertiliser, or how differently its states govern themselves, and answer it with data.</p>
+        <p>The project is unaffiliated with any government, party or company, and is free to read.</p>
+        <p class="srcs">Data come from the Ministry of Statistics and Programme Implementation (MoSPI), the Reserve Bank of India, the Census of India, NITI Aayog, PPAC, the agriculture ministry, FCI, IMD and the World Bank.</p>
+      </div>
+      <ul class="principles">
+        <li><b>Official sources</b><span>Every figure comes from a government or multilateral release, not from secondary aggregators.</span></li>
+        <li><b>Exact values</b><span>Numbers are taken exactly as published. When a value is missing, the chart says so instead of filling the gap.</span></li>
+        <li><b>Sources on every chart</b><span>Each dashboard names its source and explains how derived measures, such as ratios to GSDP or constant prices, are calculated.</span></li>
+        <li><b>Open code</b><span>The dashboards are open source on GitHub. Corrections and ideas are welcome there.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    <span>© indiaemerges · indiaemerges.com</span>
+    <nav aria-label="Elsewhere">
+      <a href="https://indiaemerges.substack.com">Substack</a>
+      <a href="https://github.com/indiaemerges">GitHub</a>
+      <a href="https://github.com/indiaemerges/india-data-dashboard/issues">Report a data issue</a>
+    </nav>
+  </footer>
+</div>
+</body>
+</html>
