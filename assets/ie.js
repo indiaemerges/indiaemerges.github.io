@@ -70,11 +70,11 @@ IE.yearCtl=function(labels,idx,on,tagFn,opts){
   const set=i=>{r.value=i;lab.textContent=labels[i];if(tagFn)tg.textContent=tagFn(i);on(i);};
   r.addEventListener('input',()=>set(+r.value));
   const box=h('div',{style:'display:flex;align-items:center;gap:12px;flex-wrap:wrap'},[r,h('span',null,[lab,tg])]);
-  if(opts&&opts.play){const n=labels.length,pb=h('button',{class:'sm',text:'Play years'});
-    pb.addEventListener('click',()=>{if(playT){IE.stopPlay();pb.textContent='Play years';return;}pb.textContent='Stop';let i=+r.value;if(i>=n-1)set(i=0);
-      playT=setInterval(()=>{if(i>=n-1||!document.body.contains(pb)){IE.stopPlay();pb.textContent='Play years';return;}set(++i);},opts.ms||700);});
+  if(opts&&opts.play){const n=labels.length,pb=h('button',{class:'sm',text:'Play'});
+    pb.addEventListener('click',()=>{if(playT){IE.stopPlay();pb.textContent='Play';return;}pb.textContent='Stop';let i=+r.value;if(i>=n-1)set(i=0);
+      playT=setInterval(()=>{if(i>=n-1||!document.body.contains(pb)){IE.stopPlay();pb.textContent='Play';return;}set(++i);},opts.ms||700);});
     box.appendChild(pb);}
-  return h('div',{class:'ctl'},[h('label',{for:r.id,text:'Year'}),box]);
+  return h('div',{class:'ctl'},[h('label',{for:r.id,text:opts&&opts.label||'Year'}),box]);
 };
 IE.rangeCtl=function(labels,a,b,on,title){
   const n=labels.length,lab=h('span',{class:'yearval'}),fil=h('div',{class:'fil'});

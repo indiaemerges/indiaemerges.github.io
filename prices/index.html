@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>India Prices Dashboard · indiaemerges</title>
+<meta name="description" content="India's consumer and wholesale price inflation from MoSPI's CPI and WPI: every item, every state, monthly, with the old and new base years.">
+<link rel="canonical" href="https://indiaemerges.com/prices/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/ie.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="home" href="/">← <span class="fl">india</span><span class="em">emerges</span></a>
+    <h1>India Prices Dashboard</h1>
+    <p class="sub">How fast prices are rising for households and for businesses: consumer prices for 358 items and every state, and wholesale prices for over a thousand goods, month by month.</p>
+    <p class="asof" id="asof"></p>
+    <nav class="tabs" id="tabs" aria-label="Views"></nav>
+  </header>
+  <div class="bar" id="bar"></div>
+  <main id="main"><p class="empty">Loading data…</p></main>
+  <footer class="sitefoot">An <a href="/">indiaemerges.com</a> dashboard · Data: MoSPI Consumer Price Index; Office of the Economic Adviser (DPIIT) Wholesale Price Index, via MoSPI’s eSankhyiki API</footer>
+</div>
+<div id="tip" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="/assets/ie.js"></script>
+<script src="/assets/india-geo.js"></script>
+<script>
+(async function(){
+"use strict";
+const {h,esc,fmt}=IE;
+const main=document.getElementById('main'),bar=document.getElementById('bar');
+let C,C12,W,W11;
+try{[C,C12,W,W11]=await Promise.all(['cpi','cpi12','wpi','wpi11'].map(u=>fetch('data/'+u+'.json').then(r=>{if(!r.ok)throw new Error(u);return r.json();})));}
+catch(e){main.innerHTML='<p class="empty">The data files did not load. Reload the page to try again.</p>';return;}
+
+/* ================= months ================= */
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],MONL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const mLab=m=>MON[+m.slice(5)-1]+' '+m.slice(0,4),mLong=m=>MONL[+m.slice(5)-1]+' '+m.slice(0,4);
+const mNum=m=>+m.slice(0,4)*12+(+m.slice(5)-1);
+function axis(M,a,b){const n=b-a;return {align:i=>mNum(M[i]),minStep:n>30?12:1,tickLabel:i=>n>30?M[i].slice(0,4):mLab(M[i]),tipTitle:i=>mLong(M[i])};}
+const SECN={C:'Combined',R:'Rural',U:'Urban'};
+
+/* ================= CPI model =================
+   b24: 2024 base. All-India headline index has MoSPI's back series from January 2013; every other line starts in January 2025.
+   b12: 2012 base, January 2011 to December 2025. Inflation rates are as published; none is published on the 2024 base for 2025. */
+const NODE={};C.nodes.forEach(n=>NODE[n.code]=n);
+const KIDS={};C.nodes.forEach(n=>{if(n.parent!=null)(KIDS[n.parent]=KIDS[n.parent]||[]).push(n.code);});
+const M24=C.back.months.concat(C.months),NB=C.back.months.length;
+const name24=c=>c==='0'?'All items':NODE[c]?NODE[c].name:c;
+function c24(code,sec,kind){ // kind: idx | inf ; returns array aligned to M24
+  const out=new Array(M24.length).fill(null);
+  if(code==='0'){const b=C.back[(kind==='inf'?'i':'')+sec]||[];b.forEach((v,i)=>out[i]=v);}
+  const e=C.ai[code];if(e){const a=e[(kind==='inf'?'i':'')+sec]||[];a.forEach((v,i)=>out[NB+i]=v);}
+  return out;}
+const M12=C12.months;
+const G12={};C12.groups.forEach(g=>G12[g.name]=g.group);
+const name12=g=>g.replace(/-Overall$/,'').replace(/^General$/,'All items');
+function c12(g,sec,kind){const e=C12.ai[g];return e?(e[(kind==='inf'?'i':'')+sec]||[]).slice():new Array(M12.length).fill(null);}
+// month-on-month change, calculated from the index
+const mom=a=>a.map((v,i)=>i&&v!=null&&a[i-1]?(v/a[i-1]-1)*100:null);
+
+/* ================= WPI model: inflation is not in the API, so it is calculated from the index ================= */
+function wmodel(F){const N={},K={};F.nodes.forEach(n=>{N[n.id]=n;if(n.parent)(K[n.parent]=K[n.parent]||[]).push(n.id);});return {F,N,K,M:F.months};}
+const WB={w22:wmodel(W),w11:wmodel(W11)};
+const WBN={w22:'2022-23 base (current series)',w11:'2011-12 base (to '+mLong(W11.meta.latest)+')'};
+function wIdx(b,id){return WB[b].F.idx[id]||[];}
+function yoy(a,M){const ix={};M.forEach((m,i)=>ix[m]=i);return a.map((v,i)=>{if(v==null)return null;const m=M[i],p=ix[(+m.slice(0,4)-1)+m.slice(4)];const pv=p==null?null:a[p];return pv?(v/pv-1)*100:null;});}
+const wName=(b,id)=>{const n=WB[b].N[id];return n?tidy(n.name):id;};
+const WTOP=b=>WB[b].F.nodes.find(n=>n.level===0&&/wholesale price index/i.test(n.name)).id;
+const WMAJ=b=>WB[b].F.nodes.filter(n=>n.level===0&&!/wholesale price index/i.test(n.name)).map(n=>n.id);
+function tidy(s){s=(s||'').trim().replace(/^\./,'');if(s===s.toUpperCase())s=s.toLowerCase();else s=s.replace(/\b([A-Z])([a-z]+)/g,(m,a,b,o)=>o?a.toLowerCase()+b:m);
+  s=s.replace(/\bmanufacture of /i,'').replace(/ n\.e\.c\./i,' n.e.c.');return s.charAt(0).toUpperCase()+s.slice(1);}
+
+/* ================= states ================= */
+const norm=s=>s.toLowerCase().replace(/&/g,'and').replace(/^the /,'').replace(/\s+/g,' ').replace(/^nct of delhi$|^delhi$/,'nct delhi').trim();
+const GEO=window.GEO.objects.states.geometries.map(g=>g.properties.n),GN={};GEO.forEach(n=>GN[norm(n)]=n);
+const geoName=s=>GN[norm(s)]||s;
+
+/* ================= state ================= */
+const LM=C.meta.latest,LW=W.meta.latest;
+const DEF0={c:{base:'b24',sec:'C',meas:'inf',sel:['0','01.1','04','07'],a:null,b:null},w:{base:'w22',meas:'inf',sel:null,a:null,b:null},s:{base:'b24',sec:'C',mi:null,state:'Maharashtra'}};
+const SAVED=IE.store.get('ie-prc1',{});const st={};Object.keys(DEF0).forEach(k=>st[k]=Object.assign({},DEF0[k],SAVED[k]||{}));
+if(!['b24','b12'].includes(st.c.base))st.c.base='b24';if(!WB[st.w.base])st.w.base='w22';if(!['b24','b12'].includes(st.s.base))st.s.base='b24';
+['c','s'].forEach(k=>{if(!SECN[st[k].sec])st[k].sec='C';});
+const save=()=>IE.store.set('ie-prc1',st);
+document.getElementById('asof').textContent='Consumer prices to '+mLong(LM)+' · Wholesale prices to '+mLong(LW)+' · Updated '+C.meta.fetched.slice(0,10);
+
+const VIEWS=[['overview','Overview'],['cpi','Consumer prices'],['wpi','Wholesale prices'],['states','States'],['methods','Sources and methods']];
+const R=IE.router(VIEWS,'overview',render);
+const BARS={overview:()=>{},cpi:barCPI,wpi:barWPI,states:barStates,methods:()=>{}},VS={overview:vOverview,cpi:vCPI,wpi:vWPI,states:vStates,methods:vMethods};
+function render(){R.tabs(document.getElementById('tabs'));bar.textContent='';IE.tip.hide();BARS[R.get()]();draw();}
+function draw(){main.textContent='';VS[R.get()]();}
+const later=[];const queue=f=>later.push(f);const flush=()=>{while(later.length)later.shift()();};
+function card(title,full){const c=h('div',{class:'card'+(full?' full':'')});c.appendChild(h('h3',{text:title}));return c;}
+const foot=(c,t)=>c.appendChild(h('p',{class:'note',text:t}));
+function tile(box,k,v,u,sp,extra){const t=h('div',{class:'tile'});t.appendChild(h('div',{class:'k',text:k}));t.appendChild(h('div',{class:'v',text:v}));t.appendChild(h('div',{class:'u',text:u}));
+  if(sp)t.appendChild(h('div',{html:IE.spark(sp)}));if(extra)t.appendChild(h('div',{class:'b',text:extra}));box.appendChild(t);}
+function numbers(head,rows,dp){const keep=head.map((x,j)=>j===0||rows.some(r=>r[j]!=null));head=head.filter((x,j)=>keep[j]);rows=rows.map(r=>r.filter((x,j)=>keep[j]));main.appendChild(h('h3',{text:'The numbers',style:'margin-top:24px'}));main.appendChild(h('div',{class:'row'},[IE.copyBtn(()=>IE.toCSV(head,rows))]));
+  main.appendChild(IE.table(head,rows.map(r=>[r[0]].concat(r.slice(1).map(v=>v==null?'':v.toFixed(dp)))))); }
+
+/* ================= Overview ================= */
+function vOverview(){
+  const li=M24.length-1,cm=C.months.length-1,lw=W.months.length-1,mon=mLong(LM);
+  main.appendChild(h('h2',{text:'Prices at a glance: '+mon}));
+  const tiles=h('div',{class:'tiles'});main.appendChild(tiles);
+  const last24=(a)=>a.slice(-24);
+  [['0','C','Consumer price inflation'],['0','R','Rural consumer price inflation'],['0','U','Urban consumer price inflation'],['01.1','C','Food inflation (CPI food)']].forEach(([c,s,n])=>{const a=c24(c,s,'inf');
+    tile(tiles,n,fmt(a[li],'pct'),mon+(s==='C'?'':', '+SECN[s].toLowerCase()),last24(a),a[li-1]!=null?'Previous month: '+fmt(a[li-1],'pct'):null);});
+  const wt=WTOP('w22'),wy=yoy(wIdx('w22',wt),W.months);
+  tile(tiles,'Wholesale price inflation',fmt(wy[lw],'pct'),mLong(LW),wy.slice(-24),'Previous month: '+fmt(wy[lw-1],'pct'));
+  WMAJ('w22').slice(0,3).forEach(id=>{const a=yoy(wIdx('w22',id),W.months);tile(tiles,'Wholesale: '+tidy(WB.w22.N[id].name),fmt(a[lw],'pct'),mLong(LW),a.slice(-24),'Previous month: '+fmt(a[lw-1],'pct'));});
+  main.appendChild(h('p',{class:'note',text:'Inflation is the change in prices on the same month a year earlier. Consumer inflation is as published by MoSPI on the 2024 base; wholesale inflation is calculated from the published index, 2022-23 base. The latest month of each is provisional.'}));
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  { const c=card('Consumer price inflation since 2012 (% change on a year earlier)',true),b=h('div');c.appendChild(b);g.appendChild(c);
+    const all=[...new Set(M12.concat(M24))].sort();
+    const at=(arr,Ms)=>{const ix={};Ms.forEach((m,i)=>ix[m]=i);return all.map((m,i)=>[i,ix[m]==null?null:arr[ix[m]]]);};
+    const S=[{name:'2024 base (with MoSPI’s back series)',color:'#6FD3EA',pts:at(c24('0','C','inf'),M24)},{name:'2012 base',color:'#F3E67C',pts:at(c12('General-Overall','C','inf'),M12)}];
+    const s0=all.findIndex((m,i)=>S.some(s=>s.pts[i][1]!=null));
+    queue(()=>IE.growthChart(b,Object.assign({labels:all.map(mLab),series:S.map(s=>Object.assign(s,{pts:s.pts.filter(p=>p[0]>=s0)})),kind:'pct',unit:'% change on the same month a year earlier, all-India combined',label:'CPI inflation'},axis(all,s0,all.length-1))));
+    foot(c,'MoSPI moved the CPI to a 2024 base in February 2026 and published a back series on the new base, for the all-India index only, from 2013. The 2012 base was the official measure until December 2025. MoSPI publishes no 2024-base inflation rate for 2025, the new base year itself.'); }
+  { const c=card('Wholesale price inflation since 2013 (% change on a year earlier)',true),b=h('div');c.appendChild(b);g.appendChild(c);
+    const all=[...new Set(W11.months.concat(W.months))].sort();
+    const at=(arr,Ms)=>{const ix={};Ms.forEach((m,i)=>ix[m]=i);return all.map((m,i)=>[i,ix[m]==null?null:arr[ix[m]]]);};
+    const S=[{name:'2022-23 base',color:'#6FD3EA',pts:at(yoy(wIdx('w22',WTOP('w22')),W.months),W.months)},{name:'2011-12 base',color:'#F3E67C',pts:at(yoy(wIdx('w11',WTOP('w11')),W11.months),W11.months)}];
+    const s0=all.findIndex((m,i)=>S.some(s=>s.pts[i][1]!=null));
+    queue(()=>IE.growthChart(b,Object.assign({labels:all.map(mLab),series:S.map(s=>Object.assign(s,{pts:s.pts.filter(p=>p[0]>=s0)})),kind:'pct',unit:'% change on the same month a year earlier, calculated from the index',label:'WPI inflation'},axis(all,s0,all.length-1))));
+    foot(c,'Calculated from the published index on each base. The two bases overlap from '+mLab(W.months[0])+' to '+mLab(W11.meta.latest)+'.'); }
+  { const c=card('Consumer inflation by type of spending, '+mon+' (%)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    const divs=(KIDS['0']||[]);
+    queue(()=>IE.rankBars(b,{items:divs.map(d=>({name:name24(d),code:d,v:c24(d,'C','inf')[li],color:'#6FD3EA'})).concat([{name:'All items',v:c24('0','C','inf')[li],color:'#fff',hl:true}]),kind:'pct',vname:mon,unit:'% change on a year earlier, all-India combined',rh:25,lw:Math.min(300,b.clientWidth*.55),
+      onClick:d=>{if(!d.code)return;st.c.sel=['0',d.code];st.c.base='b24';st.c.meas='inf';save();R.go('cpi');}}));
+    foot(c,'The twelve divisions of the 2024 CPI. Select one to follow it over time.'); }
+  { const c=card('Wholesale inflation by group, '+mLong(LW)+' (%)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    const ids=W.nodes.filter(n=>n.level===1).map(n=>n.id).concat(WMAJ('w22'));
+    queue(()=>IE.rankBars(b,{items:ids.map(id=>({name:tidy(WB.w22.N[id].name),id,v:yoy(wIdx('w22',id),W.months)[lw],color:WB.w22.N[id].level===0?'#F3E67C':'#6FD3EA'})).concat([{name:'All commodities',v:wy[lw],color:'#fff',hl:true}]),kind:'pct',vname:mLong(LW),unit:'% change on a year earlier, 2022-23 base',rh:24,lw:Math.min(300,b.clientWidth*.55),
+      onClick:d=>{if(!d.id)return;st.w.sel=[WTOP('w22'),d.id];st.w.base='w22';st.w.meas='inf';save();R.go('wpi');}}));
+    foot(c,'Yellow: the three major groups. Cyan: groups within them. Select one to follow it over time.'); }
+  { const c=card('Biggest consumer price rises and falls, '+mon+' (%)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    const items=C.nodes.filter(n=>n.level===4).map(n=>({name:n.name,code:n.code,v:(C.ai[n.code]&&C.ai[n.code].iC||[])[cm]})).filter(d=>d.v!=null).sort((p,q)=>q.v-p.v);
+    const pick=items.slice(0,10).concat(items.slice(-10)).map(d=>Object.assign(d,{color:d.v>=0?'#F590C6':'#6FD3EA'}));
+    queue(()=>IE.rankBars(b,{items:pick,kind:'pct',vname:mon,unit:'% change on a year earlier, all-India combined',rh:24,lw:Math.min(300,b.clientWidth*.55),onClick:d=>{st.c.sel=['0',d.code];st.c.base='b24';st.c.meas='inf';save();R.go('cpi');}}));
+    foot(c,'The ten items with the fastest and the ten with the slowest price change, of '+items.length+' items with a published rate. Pink: rising; cyan: falling.'); }
+  { const c=card('Wholesale price rises and falls, '+mLong(LW)+' (%)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    const items=W.nodes.filter(n=>n.level===4).map(n=>({name:tidy(n.name),id:n.id,v:yoy(wIdx('w22',n.id),W.months)[lw]})).filter(d=>d.v!=null).sort((p,q)=>q.v-p.v);
+    const pick=items.slice(0,10).concat(items.slice(-10)).map(d=>Object.assign(d,{color:d.v>=0?'#F590C6':'#6FD3EA'}));
+    queue(()=>IE.rankBars(b,{items:pick,kind:'pct',vname:mLong(LW),unit:'% change on a year earlier, 2022-23 base',rh:24,lw:Math.min(300,b.clientWidth*.55),onClick:d=>{st.w.sel=[WTOP('w22'),d.id];st.w.base='w22';st.w.meas='inf';save();R.go('wpi');}}));
+    foot(c,'The ten goods with the fastest and the ten with the slowest wholesale price change, of '+items.length+'.'); }
+  flush();
+}
+
+/* ================= Consumer prices ================= */
+const CMEAS=[['inf','Inflation: change on a year earlier'],['mom','Change on the previous month'],['idx','Index level']];
+function cMonths(){return st.c.base==='b24'?M24:M12;}
+function barCPI(){const s=st.c;
+  bar.appendChild(IE.ctl('Series',IE.sel([['b24','2024 base (current series)'],['b12','2012 base (to December 2025)']],s.base,v=>{s.base=v;s.sel=v==='b24'?['0','01.1','04','07']:['General-Overall','Food and Beverages-Overall','Housing-Overall','Fuel and Light-Overall'];s.a=s.b=null;save();render();})));
+  bar.appendChild(IE.ctl('Area',IE.sel([['C','All India, rural and urban'],['R','Rural'],['U','Urban']],s.sec,v=>{s.sec=v;save();draw();})));
+  bar.appendChild(IE.ctl('Measure',IE.sel(CMEAS,s.meas,v=>{s.meas=v;save();draw();})));
+  const M=cMonths();if(s.a==null||s.b==null||s.b>=M.length||s.a>=s.b){s.b=M.length-1;s.a=Math.max(0,M.length-(s.base==='b24'?22:60));}
+  bar.appendChild(IE.rangeCtl(M.map(mLab),s.a,s.b,(a,b)=>{s.a=a;s.b=b;save();draw();},'Period shown'));}
+const ccol={};function cCol(k){if(k==='0'||k==='General-Overall')return '#FFFFFF';const used=new Set(st.c.sel.map(x=>ccol[x]).filter(Boolean));if(!ccol[k])ccol[k]=['#6FD3EA','#F3E67C','#F590C6','#8FE39A','#A99AF5','#F7A873','#7FA7F5','#8E949A'].find(c=>!used.has(c))||'#8E949A';return ccol[k];}
+function cSeries(k){const s=st.c,sec=s.sec,b=s.base;const raw=b==='b24'?c24(k,sec,'idx'):c12(k,sec,'idx');
+  if(s.meas==='idx')return raw;if(s.meas==='mom')return mom(raw);return b==='b24'?c24(k,sec,'inf'):c12(k,sec,'inf');}
+function cName(k){return st.c.base==='b24'?name24(k):name12(k);}
+function cOptions(){const s=st.c;
+  if(s.base==='b12'){const grp={};C12.groups.forEach(g=>{(grp[g.group]=grp[g.group]||[]).push(g.name);});return Object.keys(grp).map(G=>({group:G==='General'?'All items':G,items:grp[G].filter(x=>!s.sel.includes(x)).map(x=>[x,name12(x)])})).filter(g=>g.items.length);}
+  const out=[{group:'All items',items:s.sel.includes('0')?[]:[['0','All items']]}];
+  (KIDS['0']||[]).forEach(d=>{const items=[];const walk=(c,dep)=>{if(!s.sel.includes(c)&&(s.sec==='C'||NODE[c].level<3))items.push([c,' '.repeat(dep)+NODE[c].name]);(KIDS[c]||[]).forEach(k=>walk(k,dep+1));};walk(d,0);out.push({group:NODE[d].name,items});});
+  return out.filter(g=>g.items.length);}
+function vCPI(){
+  const s=st.c,M=cMonths(),ax=axis(M,s.a,s.b),rng=i=>i>=s.a&&i<=s.b,kind=s.meas==='idx'?'idx':'pct';
+  s.sel=s.sel.filter(k=>s.base==='b24'?(k==='0'||NODE[k]):C12.ai[k]);if(!s.sel.length)s.sel=[s.base==='b24'?'0':'General-Overall'];
+  Object.keys(ccol).forEach(k=>{if(!s.sel.includes(k))delete ccol[k];});
+  main.appendChild(h('div',{class:'row'},[IE.chips(s.sel.map(k=>({key:k,name:cName(k)})),k=>{s.sel=s.sel.filter(x=>x!==k);save();draw();},cOptions(),v=>{s.sel.push(v);save();draw();},8,it=>cCol(it.key))]));
+  const unit={inf:'% change on the same month a year earlier',mom:'% change on the previous month, calculated from the index',idx:'Index, '+(s.base==='b24'?'2024':'2012')+' = 100'}[s.meas]+', '+SECN[s.sec].toLowerCase();
+  const c=card({inf:'Consumer price inflation',mom:'Consumer prices: change on the previous month',idx:'Consumer Price Index'}[s.meas]+' ('+(s.meas==='idx'?(s.base==='b24'?'2024':'2012')+' = 100':'%')+')',true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+  const S=s.sel.map(k=>({name:cName(k),color:cCol(k),bold:k==='0'||k==='General-Overall',pts:cSeries(k).map((v,i)=>[i,rng(i)?v:null])}));
+  if(s.meas==='idx'){IE.lineChart(bb,Object.assign({labels:M.map(mLab),series:S,kind,unit,zero:false,label:'CPI'},ax));if(bb.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S,1));}
+  else IE.growthChart(bb,Object.assign({labels:M.map(mLab),series:S,kind,unit,label:'CPI inflation'},ax));
+  foot(c,(s.base==='b24'?'MoSPI CPI, 2024 base. Only the all-items index goes back before 2025, through MoSPI’s back series, and only for all India. '+(s.meas==='inf'?'No inflation rate is published on this base for 2025. ':''):'MoSPI CPI, 2012 base, the official series until December 2025. ')+(s.meas==='inf'?'Rates as published. ':'Calculated from the published index. ')+(s.base==='b24'&&s.sec!=='C'?'Rural and urban lines go down to class level.':''));
+  const li=s.b,lab=mLong(M[li]);
+  const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  const kids=s.base==='b24'?(KIDS['0']||[]):C12.groups.filter(x=>/-Overall$/.test(x.name)&&x.name!=='General-Overall').map(x=>x.name);
+  { const cc=card('Inflation by type of spending, '+lab+' (%)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
+    const val=k=>(s.base==='b24'?c24(k,s.sec,'inf'):c12(k,s.sec,'inf'))[li];
+    queue(()=>IE.rankBars(b2,{items:kids.map(k=>({name:cName(k),key:k,v:val(k),color:'#6FD3EA'})).concat([{name:'All items',v:val(s.base==='b24'?'0':'General-Overall'),color:'#fff',hl:true}]),kind:'pct',vname:lab,unit:'% change on a year earlier, '+SECN[s.sec].toLowerCase(),rh:25,lw:Math.min(300,b2.clientWidth*.55),
+      empty:'No inflation rate is published for '+lab+' on this base. Move the period to 2026, or choose the 2012 base.',onClick:d=>{if(d.key&&!s.sel.includes(d.key)&&s.sel.length<8){s.sel.push(d.key);save();draw();window.scrollTo(0,0);}}}));
+    foot(cc,'The last month in the period shown. Select a bar to add it to the chart above.'); }
+  if(s.base==='b24'){const sel=s.sel.find(k=>k!=='0'&&KIDS[k])||'01.1';const cc=card('Inside '+name24(sel)+', '+lab+' (%)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
+    const sub=(KIDS[sel]||[]).filter(k=>s.sec==='C'||NODE[k].level<3);
+    queue(()=>IE.rankBars(b2,{items:sub.map(k=>({name:name24(k),key:k,v:c24(k,s.sec,'inf')[li],color:'#F3E67C'})).concat([{name:name24(sel),v:c24(sel,s.sec,'inf')[li],color:'#fff',hl:true}]),kind:'pct',vname:lab,unit:'% change on a year earlier, '+SECN[s.sec].toLowerCase(),rh:24,lw:Math.min(300,b2.clientWidth*.55),
+      empty:'No inflation rate is published for '+lab+' on this base.',onClick:d=>{if(d.key&&!s.sel.includes(d.key)&&s.sel.length<8){s.sel.push(d.key);save();draw();window.scrollTo(0,0);}}}));
+    foot(cc,'The parts of the first line in the chart above that has parts. Add a group or class to see what is inside it.');}
+  flush();
+  const yrs=d3.range(s.a,s.b+1);numbers(['Series ('+unit+')'].concat(yrs.map(i=>mLab(M[i]))),S.map(x=>[x.name].concat(yrs.map(i=>x.pts[i][1]))),2);
+}
+
+/* ================= Wholesale prices ================= */
+function barWPI(){const s=st.w;
+  bar.appendChild(IE.ctl('Series',IE.sel(Object.keys(WBN).map(k=>[k,WBN[k]]),s.base,v=>{s.base=v;s.sel=null;s.a=s.b=null;save();render();})));
+  bar.appendChild(IE.ctl('Measure',IE.sel(CMEAS,s.meas,v=>{s.meas=v;save();draw();})));
+  const M=WB[s.base].M;if(s.a==null||s.b==null||s.b>=M.length||s.a>=s.b){s.b=M.length-1;s.a=Math.max(0,M.length-(s.base==='w22'?31:60));}
+  bar.appendChild(IE.rangeCtl(M.map(mLab),s.a,s.b,(a,b)=>{s.a=a;s.b=b;save();draw();},'Period shown'));}
+const wcol={};function wCol(k){if(k===WTOP(st.w.base))return '#FFFFFF';const used=new Set(st.w.sel.map(x=>wcol[x]).filter(Boolean));if(!wcol[k])wcol[k]=['#6FD3EA','#F3E67C','#F590C6','#8FE39A','#A99AF5','#F7A873','#7FA7F5','#8E949A'].find(c=>!used.has(c))||'#8E949A';return wcol[k];}
+function vWPI(){
+  const s=st.w,B=WB[s.base],M=B.M,ax=axis(M,s.a,s.b),rng=i=>i>=s.a&&i<=s.b,kind=s.meas==='idx'?'idx':'pct';
+  if(!s.sel||!s.sel.length)s.sel=[WTOP(s.base)].concat(WMAJ(s.base));s.sel=s.sel.filter(k=>B.N[k]);if(!s.sel.length)s.sel=[WTOP(s.base)];
+  Object.keys(wcol).forEach(k=>{if(!s.sel.includes(k))delete wcol[k];});
+  const opts=[{group:'All commodities',items:s.sel.includes(WTOP(s.base))?[]:[[WTOP(s.base),'All commodities']]}].concat(B.F.nodes.filter(n=>n.level===0&&n.id!==WTOP(s.base)).map(n=>{const items=[];const walk=(id,dep)=>{if(!s.sel.includes(id))items.push([id,' '.repeat(dep)+tidy(B.N[id].name)]);(B.K[id]||[]).forEach(k=>walk(k,dep+1));};walk(n.id,0);return {group:tidy(n.name),items};})).filter(g=>g.items.length);
+  main.appendChild(h('div',{class:'row'},[IE.chips(s.sel.map(k=>({key:k,name:k===WTOP(s.base)?'All commodities':wName(s.base,k)})),k=>{s.sel=s.sel.filter(x=>x!==k);save();draw();},opts,v=>{s.sel.push(v);save();draw();},8,it=>wCol(it.key))]));
+  const ser=k=>{const a=wIdx(s.base,k);return s.meas==='idx'?a:s.meas==='mom'?mom(a):yoy(a,M);};
+  const unit={inf:'% change on the same month a year earlier, calculated from the index',mom:'% change on the previous month, calculated from the index',idx:'Index, '+s.base.replace('w22','2022-23').replace('w11','2011-12')+' = 100'}[s.meas];
+  const c=card({inf:'Wholesale price inflation (%)',mom:'Wholesale prices: change on the previous month (%)',idx:'Wholesale Price Index ('+(s.base==='w22'?'2022-23':'2011-12')+' = 100)'}[s.meas],true),lg=h('div'),bb=h('div');c.appendChild(lg);c.appendChild(bb);main.appendChild(c);
+  const S=s.sel.map(k=>({name:k===WTOP(s.base)?'All commodities':wName(s.base,k),color:wCol(k),bold:k===WTOP(s.base),pts:ser(k).map((v,i)=>[i,rng(i)?v:null])}));
+  if(s.meas==='idx'){IE.lineChart(bb,Object.assign({labels:M.map(mLab),series:S,kind,unit,zero:false,label:'WPI'},ax));if(bb.clientWidth<=640&&S.length>1)lg.appendChild(IE.legend(S,1));}
+  else IE.growthChart(bb,Object.assign({labels:M.map(mLab),series:S,kind,unit,label:'WPI inflation'},ax));
+  foot(c,'Wholesale Price Index, '+WBN[s.base]+'. The API carries the index but not inflation rates, so rates are calculated from the index. '+(s.base==='w22'?'The latest two months are provisional and are revised later.':'The 2011-12 base file holds groups and sub-groups but not individual goods.'));
+  const li=s.b,lab=mLong(M[li]);const g=h('div',{class:'grid g2',style:'margin-top:18px'});main.appendChild(g);
+  const parent=s.sel.find(k=>k!==WTOP(s.base)&&B.K[k])||WMAJ(s.base)[2]||WMAJ(s.base)[0];
+  { const cc=card('Inside '+wName(s.base,parent)+', '+lab+' (% change on a year earlier)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
+    queue(()=>IE.rankBars(b2,{items:(B.K[parent]||[]).map(k=>({name:wName(s.base,k),key:k,v:yoy(wIdx(s.base,k),M)[li],color:'#F3E67C'})).concat([{name:wName(s.base,parent),v:yoy(wIdx(s.base,parent),M)[li],color:'#fff',hl:true}]),kind:'pct',vname:lab,unit:'% change on a year earlier',rh:24,lw:Math.min(320,b2.clientWidth*.58),
+      onClick:d=>{if(d.key&&!s.sel.includes(d.key)&&s.sel.length<8){s.sel.push(d.key);save();draw();window.scrollTo(0,0);}}}));
+    foot(cc,'The parts of the first line in the chart above that has parts. Select a bar to add it to the chart.'); }
+  { const cc=card('Major groups, '+lab+' (% change on a year earlier)'),b2=h('div');cc.appendChild(b2);g.appendChild(cc);
+    queue(()=>IE.rankBars(b2,{items:WMAJ(s.base).map(k=>({name:wName(s.base,k),key:k,v:yoy(wIdx(s.base,k),M)[li],color:'#6FD3EA'})).concat([{name:'All commodities',v:yoy(wIdx(s.base,WTOP(s.base)),M)[li],color:'#fff',hl:true}]),kind:'pct',vname:lab,unit:'% change on a year earlier',rh:26,lw:Math.min(300,b2.clientWidth*.55),
+      onClick:d=>{if(d.key&&!s.sel.includes(d.key)&&s.sel.length<8){s.sel.push(d.key);save();draw();window.scrollTo(0,0);}}}));
+    foot(cc,'Primary articles are farm goods and minerals; fuel and power includes crude oil, coal and electricity; manufactured products are factory goods. The food index combines food articles and manufactured food.'); }
+  flush();
+  const yrs=d3.range(s.a,s.b+1);numbers(['Series ('+unit+')'].concat(yrs.map(i=>mLab(M[i]))),S.map(x=>[x.name].concat(yrs.map(i=>x.pts[i][1]))),s.meas==='idx'?1:2);
+}
+
+/* ================= States ================= */
+function sData(){const b=st.s.base;return b==='b24'?{F:C,M:C.months}:{F:C12,M:M12};}
+function sMonths(){const {F,M}=sData();return M.map((m,i)=>i).filter(i=>F.states.some(x=>(F.st[x][st.s.sec].inf||[])[i]!=null));}
+function barStates(){const s=st.s;
+  bar.appendChild(IE.ctl('Series',IE.sel([['b24','2024 base (current series)'],['b12','2012 base (to December 2025)']],s.base,v=>{s.base=v;s.mi=null;save();render();})));
+  bar.appendChild(IE.ctl('Area',IE.sel([['C','Rural and urban'],['R','Rural'],['U','Urban']],s.sec,v=>{s.sec=v;save();render();})));
+  const OK=sMonths(),{M}=sData();if(s.mi==null||!OK.includes(s.mi))s.mi=OK[OK.length-1];
+  bar.appendChild(IE.yearCtl(OK.map(i=>mLab(M[i])),OK.indexOf(s.mi),j=>{s.mi=OK[j];save();draw();},null,{play:true,label:'Month'}));}
+function vStates(){
+  const s=st.s,{F,M}=sData(),mi=s.mi,mon=mLong(M[mi]),sec=s.sec;
+  const vals={};F.states.forEach(x=>{if(norm(x)==='all india')return;vals[geoName(x)]=(F.st[x][sec].inf||[])[mi];});
+  const pool=[];F.states.forEach(x=>{if(norm(x)==='all india')return;(F.st[x][sec].inf||[]).forEach(v=>{if(v!=null&&isFinite(v))pool.push(v);});});
+  const cl=IE.classer(Object.values(vals),{pool}),ai=s.base==='b24'?c24('0',sec,'inf')[NB+mi]:c12('General-Overall',sec,'inf')[mi];
+  const hd='Consumer price inflation, '+mon+' (%)';
+  const row=h('div',{class:'maprow'});main.appendChild(row);const c1=card(hd),c2=card('Ranking: '+hd);row.appendChild(c1);row.appendChild(c2);
+  if(cl){c1.appendChild(IE.scaleLegend(cl,'pct','no data'));const b1=h('div');c1.appendChild(b1);
+    IE.mapChart(b1,{values:vals,cl,kind:'pct',unit:'% change on a year earlier, '+SECN[sec].toLowerCase(),title:mon,label:'Map: '+hd,onClick:n=>{st.s.state=n;save();draw();document.getElementById('sprof').scrollIntoView();}});}
+  foot(c1,'Pink is rising prices, cyan falling; the colour bands are fixed across all months, so shades can be compared over time. States too small for a label are in the ranking. Select a state for its profile below.');
+  const b2=h('div');c2.appendChild(b2);
+  const items=Object.keys(vals).map(n=>({name:n,key:n,v:vals[n],color:cl&&vals[n]!=null?cl.f(vals[n]):null}));if(ai!=null)items.push({name:'All India',v:ai,color:'#fff',hl:true});
+  IE.rankBars(b2,{items,kind:'pct',vname:mon,unit:'% change on a year earlier, '+SECN[sec].toLowerCase(),rh:24,onClick:d=>{if(d.key){st.s.state=d.key;save();draw();document.getElementById('sprof').scrollIntoView();}}});
+  foot(c2,'MoSPI CPI, '+(s.base==='b24'?'2024':'2012')+' base, '+SECN[sec].toLowerCase()+', as published. The white bar is all India. Small states and union territories have few price quotes, so their rates swing more.');
+  const names=Object.keys(vals).sort(),sn=names.includes(s.state)?s.state:names[0],src=F.states.find(x=>geoName(x)===sn);
+  main.appendChild(h('h2',{id:'sprof',text:sn+': consumer prices',style:'margin-top:30px'}));
+  main.appendChild(h('div',{class:'row'},[IE.ctl('State or UT',IE.sel(names.map(x=>[x,x]),sn,v=>{st.s.state=v;save();draw();document.getElementById('sprof').scrollIntoView();}))]));
+  const OK=sMonths(),a=OK[0],b=OK[OK.length-1];
+  const c=card('Consumer price inflation: '+sn+' and all India (%)',true),bb=h('div');c.appendChild(bb);main.appendChild(c);
+  const aiArr=s.base==='b24'?c24('0',sec,'inf').slice(NB):c12('General-Overall',sec,'inf');
+  const S=['R','U','C'].filter(x=>x===sec||sec==='C').map((x,j)=>({name:sn+(sec==='C'?', '+SECN[x].toLowerCase():''),color:['#8FE39A','#F590C6','#6FD3EA'][['R','U','C'].indexOf(x)],pts:(F.st[src][x].inf||[]).map((v,i)=>[i,i>=a&&i<=b?v:null])})).reverse();
+  S.push({name:'All India',color:'#FFFFFF',pts:aiArr.map((v,i)=>[i,i>=a&&i<=b?v:null])});
+  IE.growthChart(bb,Object.assign({labels:M.map(mLab),series:S,kind:'pct',unit:'% change on the same month a year earlier',label:sn+' inflation'},axis(M,a,b)));
+  foot(c,'Rural, urban and combined rates for the state, as published, against all India ('+SECN[sec].toLowerCase()+').');
+  const yrs=d3.range(a,b+1);numbers(['Series (% change on a year earlier)'].concat(yrs.map(i=>mLab(M[i]))),S.map(x=>[x.name].concat(yrs.map(i=>x.pts[i][1]))),2);
+}
+
+/* ================= Methods ================= */
+function vMethods(){
+  main.appendChild(h('div',{class:'methods',html:`
+<h2>Sources and methods</h2>
+<h3>Consumer Price Index (CPI)</h3>
+<ul>
+<li><b>Source.</b> Ministry of Statistics and Programme Implementation (MoSPI), via its eSankhyiki API. Index values and inflation rates are shown exactly as published; the latest month is provisional and is finalised the following month. Data last fetched ${esc(C.meta.fetched.slice(0,10))}.</li>
+<li><b>2024 base.</b> MoSPI’s current series, introduced in February 2026, with ${C.nodes.filter(n=>n.level===4).length} items in twelve divisions. The dashboard holds every level for all India (combined), down to class level for rural and urban, and the all-items index for each state. Indices start in January 2025, the base year; inflation rates start in January 2026.</li>
+<li><b>Back series.</b> MoSPI published the all-India all-items index on the 2024 base back to January 2013, with inflation rates from January 2014. It is shown joined to the new series because MoSPI publishes it as part of the same base. There is no back series for divisions, items or states.</li>
+<li><b>2012 base.</b> The official series until December 2025, ${esc(mLong(M12[0]))} to ${esc(mLong(M12[M12.length-1]))}, for all India by group and sub-group and for each state (all items). The two bases are never spliced, because they have different baskets and weights.</li>
+<li><b>Calculated here.</b> Only the change on the previous month, from the published index.</li>
+</ul>
+<h3>Wholesale Price Index (WPI)</h3>
+<ul>
+<li><b>Source.</b> Office of the Economic Adviser, Department for Promotion of Industry and Internal Trade, published through MoSPI’s eSankhyiki API. The 2022-23 base runs from ${esc(mLong(W.months[0]))} with ${W.nodes.filter(n=>n.level===4).length} goods; the 2011-12 base runs to ${esc(mLong(W11.meta.latest))} and is held here at group and sub-group level.</li>
+<li><b>Inflation is calculated here.</b> The API carries the index but not inflation rates, so every rate is the index for a month divided by the index a year earlier, minus one. Official releases calculate rates the same way, so they match to rounding. Because the API holds the final, revised index, a rate here can differ from the provisional rate first announced for that month.</li>
+<li><b>Revisions.</b> The two latest months are provisional. The update job re-reads the last two years of the 2022-23 base on every run, so revisions replace the provisional numbers.</li>
+</ul>
+<h3>States</h3>
+<ul>
+<li>State CPI inflation is as published, for rural, urban and combined. Small states and union territories have few price quotes and their rates are more volatile. Map boundaries follow the india-maps-data project.</li>
+</ul>
+<h3>Updates</h3>
+<ul><li>A script in the site’s repository fetches the data from MoSPI and a scheduled job re-runs it daily, so new monthly releases appear without manual work. The closed 2012 and 2011-12 series are fetched once and kept.</li></ul>`}));
+}
+
+render();
+})();
+</script>
+</body>
+</html>
