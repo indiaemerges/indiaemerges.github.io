@@ -1,0 +1,29 @@
+name: Refresh prices data (CPI and WPI)
+
+on:
+  schedule:
+    - cron: "37 9 * * *"   # daily, 09:37 UTC; commits only when MoSPI has published new numbers
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python tools/fetch_prices.py
+      - name: Commit if changed
+        run: |
+          if [ -n "$(git status --porcelain prices/data)" ]; then
+            git config user.name "indiaemerges-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add prices/data
+            git commit -m "Refresh prices data from MoSPI"
+            git push
+          fi
