@@ -19,6 +19,7 @@ IE.fmt=function(v,kind){
   const a=Math.abs(v);
   switch(kind){
     case 'pct2':return (a>=100?v.toFixed(0):a>=10?v.toFixed(1):v.toFixed(2)).replace(/^-/,'−')+'%';  // two decimals below 10%, for small ratios
+    case 'pctx':return v.toFixed(2).replace(/^-/,'−')+'%';  // always two decimals, as MoSPI publishes CPI rates
     case 'pct':return (a>=100?v.toFixed(0):a>=1||a===0?v.toFixed(1):v.toFixed(2)).replace(/^-/,'−')+'%';
     case 'pp':return (v>0?'+':'')+v.toFixed(1).replace(/^-/,'−')+' pp';
     case 'idx':return v.toFixed(1);
@@ -31,7 +32,7 @@ IE.fmt=function(v,kind){
   }
 };
 IE.tickFmt=function(kind,max,step){const dp=step==null?null:step>=1?0:step>=.1?1:2;
-  if(kind==='pct'||kind==='pct2')return v=>d3.format('.'+(dp==null?(max<5?1:0):dp)+'f')(v).replace('-','−')+'%';
+  if(kind==='pct'||kind==='pct2'||kind==='pctx')return v=>d3.format('.'+(dp==null?(max<5?1:0):dp)+'f')(v).replace('-','−')+'%';
   if(kind==='idx'||kind==='x')return d3.format(max<5?'.1f':'.0f');
   if(kind==='pp')return v=>d3.format(max<5?'.1f':'.0f')(v).replace('-','−');
   if(kind==='rs')return v=>max>=2e5?'₹'+d3.format('.1f')(v/1e5)+'L':'₹'+IE.IN(v);
@@ -126,7 +127,7 @@ IE.lineChart=function(el,o){
   const W=el.clientWidth||600,wide=W>640,end=wide&&o.endLabels!==false&&series.length>1,Ht=o.height||(wide?420:330);
   const m={t:bandTop(o),r:end?168:16,b:34,l:10};
   const all=series.flatMap(s=>s.pts);let a=d3.min(all,p=>p[0]),b=d3.max(all,p=>p[0]);if(a===b){a=Math.max(0,a-1);b=Math.min(L.length-1,b+1);}
-  let lo=d3.min(all,p=>p[1]),hi=d3.max(all,p=>p[1]);if(o.zero!==false&&o.kind!=='idx'){lo=Math.min(0,lo);hi=Math.max(0,hi);}if(lo===hi){lo-=1;hi+=1;}
+  let lo=d3.min(all,p=>p[1]),hi=d3.max(all,p=>p[1]);if(o.zero!==false&&o.kind!=='idx'){lo=Math.min(0,lo);hi=Math.max(0,hi);}(o.hlines||[]).forEach(r=>{lo=Math.min(lo,r.v);hi=Math.max(hi,r.v);});if(lo===hi){lo-=1;hi+=1;}
   const y=d3.scaleLinear().domain([lo,hi]).nice(6).range([Ht-m.b,m.t]);const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])),ticks.length>1?ticks[1]-ticks[0]:null);
   m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleLinear().domain([a,b]).range([m.l+8,W-m.r-8]);
@@ -135,11 +136,20 @@ IE.lineChart=function(el,o){
   const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r-16,o.align,o.minStep,o.steps).forEach(i=>xa.append('text').attr('x',x(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
   edgeFix(xa,W);
   bands(svg.append('g'),x,m.t,Ht-m.b,o.bands,(x(a+1)-x(a))||10,a,b);
+  /* o.hlines: [{v,label,short}] (short on phones) dashed reference lines, labelled at the left */
+  (o.hlines||[]).forEach(r=>{svg.append('line').attr('x1',m.l+8).attr('x2',W-m.r-8).attr('y1',y(r.v)).attr('y2',y(r.v)).attr('stroke','#9a9a9a').attr('stroke-width',1.5).attr('stroke-dasharray','6 5');
+    /* put the label above the line where no data point overlaps it */
+    const lab=(!wide&&r.short)||r.label,fs=wide?14:13,lw=lab?lab.length*fs*.54+8:0,yy=y(r.v),pts=series.flatMap(s=>s.pts.flatMap((p,i)=>{const q=s.pts[i+1];return q&&q[0]===p[0]+1?d3.range(8).map(k=>[x(p[0]+k/8),y(p[1]+(q[1]-p[1])*k/8)]):[[x(p[0]),y(p[1])]];})),x0=m.l+12,x1=W-m.r-8-lw;
+    series.forEach(s=>{if(!s.endValue)return;const e=s.pts[s.pts.length-1],ex=x(e[0]),ey=y(e[1])-14,tw=IE.fmt(e[1],o.kind==='pct'?'pct2':o.kind).length*11;for(let k=0;k<=tw;k+=6)for(let j=-18;j<=4;j+=4)pts.push([ex-k,ey+j]);});
+    let best=null;[[-24,4,-7],[-4,24,17]].forEach(([u,d,ty])=>{for(let f=0;f<=1.0001;f+=.02){const c=x0+(x1-x0)*f,n=pts.filter(p=>p[0]>=c-8&&p[0]<=c+lw+8&&p[1]>=yy+u&&p[1]<=yy+d).length;if(!best||n<best.n)best={n,c,ty};if(!n)break;}});
+    if(lab)svg.append('text').attr('x',best.c).attr('y',yy+best.ty).attr('font-size',fs).style('fill','rgba(255,255,255,.78)').text(lab);});
   const ln=d3.line().x(p=>x(p[0])).y(p=>y(p[1]));
   series.forEach(s=>{const segs=[];let cur=[];s.pts.forEach((p,i)=>{if(i&&p[0]!==s.pts[i-1][0]+1){segs.push(cur);cur=[];}cur.push(p);});segs.push(cur);
     segs.forEach(sg=>{if(sg.length>1)svg.append('path').attr('d',ln(sg)).attr('fill','none').attr('stroke',s.color).attr('stroke-width',s.bold?3:2).attr('stroke-dasharray',s.dash||null).attr('stroke-linejoin','round');
       else svg.append('circle').attr('cx',x(sg[0][0])).attr('cy',y(sg[0][1])).attr('r',3).attr('fill',s.color);});
-    const e=s.pts[s.pts.length-1];svg.append('circle').attr('cx',x(e[0])).attr('cy',y(e[1])).attr('r',4.5).attr('fill',s.color).attr('stroke','#000').attr('stroke-width',2);});
+    const e=s.pts[s.pts.length-1];svg.append('circle').attr('cx',x(e[0])).attr('cy',y(e[1])).attr('r',4.5).attr('fill',s.color).attr('stroke','#000').attr('stroke-width',2);
+    /* s.endValue: print the latest value above its point */
+    if(s.endValue)svg.append('text').attr('x',x(e[0])).attr('y',y(e[1])-14).attr('text-anchor','end').attr('font-size',20).attr('font-weight',600).style('paint-order','stroke').style('stroke','#0e0e0e').style('stroke-width',5).text(IE.fmt(e[1],o.kind==='pct'?'pct2':o.kind));});
   if(end){const labs=series.map(s=>{const e=s.pts[s.pts.length-1];return {s,y:y(e[1])};}).sort((p,q)=>p.y-q.y);
     for(let k=0;k<4;k++){for(let i=1;i<labs.length;i++)if(labs[i].y-labs[i-1].y<19)labs[i].y=labs[i-1].y+19;for(let i=labs.length-1;i>=0;i--){if(labs[i].y>Ht-m.b)labs[i].y=Ht-m.b;if(i<labs.length-1&&labs[i+1].y-labs[i].y<19)labs[i].y=labs[i+1].y-19;}}
     labs.forEach(l=>{let nm=l.s.short||l.s.name;if(nm.length>19)nm=nm.slice(0,18)+'…';svg.append('rect').attr('x',W-m.r+2).attr('y',l.y-1.5).attr('width',8).attr('height',3).attr('fill',l.s.color);svg.append('text').attr('x',W-m.r+14).attr('y',l.y+5).attr('font-size',14).text(nm);});}
@@ -289,14 +299,14 @@ IE.stackChart=function(el,o){
 IE.rankBars=function(el,o){
   el.textContent='';const items=o.items.filter(d=>d.v!=null&&isFinite(d.v));if(!items.length)return empty(el,o.empty);
   if(!o.keep)items.sort((p,q)=>q.v-p.v);
-  const W=el.clientWidth||500,rh=o.rh||27,lw=o.lw||Math.min(220,W*(W<520?.5:.38)),vw=Math.min(130,d3.max(items,d=>IE.fmt(d.v,o.kind).length)*8.8+8);
+  const W=el.clientWidth||500,rh=o.rh||27,CW=8.6,lw=o.lw||Math.min(220,W*(W<520?.46:.38),d3.max(items,d=>d.name.length)*CW+16),vwOf=a=>a.length?Math.min(130,d3.max(a,d=>IE.fmt(d.v,o.kind).length)*8.8+10):0,vwN=vwOf(items.filter(d=>d.v<0)),vw=Math.max(vwOf(items.filter(d=>d.v>=0)),vwN?0:24);
   const Ht=items.length*rh+8,ext=[Math.min(0,d3.min(items,d=>Math.min(d.v,d.ref==null?d.v:d.ref))),Math.max(0,d3.max(items,d=>Math.max(d.v,d.ref==null?d.v:d.ref)))];
-  const neg=ext[0]<0,x=d3.scaleLinear().domain(ext).range([lw+(neg?vw:0),W-vw]);
+  const neg=ext[0]<0,x=d3.scaleLinear().domain(ext).range([lw+(neg?vwN:0),W-vw]);
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Ranked bars');
   svg.append('line').attr('x1',x(0)).attr('x2',x(0)).attr('y1',0).attr('y2',Ht).attr('stroke','#666');
   items.forEach((d,i)=>{const yy=i*rh+4,g=svg.append('g').style('cursor',o.onClick?'pointer':null);
     g.append('rect').attr('x',0).attr('y',yy-2).attr('width',W).attr('height',rh).attr('fill','transparent');
-    let nm=d.name;const maxc=Math.floor((lw-10)/8.6);if(nm.length>maxc)nm=nm.slice(0,maxc-1)+'…';
+    let nm=d.name;const maxc=Math.floor((lw-10)/CW);if(nm.length>maxc)nm=nm.slice(0,maxc-1)+'…';
     g.append('text').attr('x',lw-8).attr('y',yy+rh/2+2).attr('text-anchor','end').attr('font-size',15).attr('font-weight',d.hl?600:400).text(nm);
     const x0=Math.min(x(0),x(d.v)),bw=Math.abs(x(d.v)-x(0));
     g.append('rect').attr('x',x0).attr('y',yy+3).attr('width',Math.max(1,bw)).attr('height',rh-10).attr('rx',3).attr('fill',d.color||o.color||IE.PAL[0]);

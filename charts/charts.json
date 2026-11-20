@@ -1,5 +1,65 @@
 [
   {
+    "date": "2026-11-20",
+    "file": "2026-11-20-cpi-groups.png",
+    "title": "Food pushes retail inflation above 6%",
+    "subtitle": "Consumer price inflation by group, all India, % change on a year earlier, January to October 2026. CPI base 2024=100.",
+    "caption": "Inflation has risen every month this year, from 2.74% in January to 6.09% in October, above the RBI's 6% upper limit. Food and beverage inflation quadrupled, from 2.11% to 8.51%. Restaurant and hotel prices rose 10.06% on a year earlier and transport 5.84%, after being flat until April. Housing and fuel stayed below 3%.",
+    "alt": "Line chart of CPI inflation from January to October 2026 for all items and four groups. All items rises from 2.74% to 6.09%; food and beverages from 2.11% to 8.51%; restaurants and accommodation from 2.87% to 10.06%; transport from 0.09% to 5.84%; housing, water, electricity, gas and other fuels from 1.47% to 2.90%.",
+    "source": "MoSPI Consumer Price Index (base 2024=100), all India, rural and urban combined, October 2026 provisional",
+    "interactive": {
+      "type": "line",
+      "data": "data/2026-11-20-cpi-groups.csv",
+      "x": "month",
+      "kind": "pctx",
+      "series": [
+        [
+          "all_items",
+          "All items",
+          "#FFFFFF",
+          false,
+          "All items"
+        ],
+        [
+          "restaurants_accommodation",
+          "Restaurants and accommodation",
+          "#F3E67C",
+          false,
+          "Restaurants"
+        ],
+        [
+          "food_and_beverages",
+          "Food and beverages",
+          "#F590C6",
+          false,
+          "Food"
+        ],
+        [
+          "transport",
+          "Transport",
+          "#6FD3EA",
+          false,
+          "Transport"
+        ],
+        [
+          "housing_fuel",
+          "Housing, water, electricity and fuel",
+          "#A99AF5",
+          false,
+          "Housing, fuel"
+        ]
+      ],
+      "hlines": [
+        {
+          "v": 6,
+          "label": "RBI's 6% upper limit",
+          "short": "6% limit"
+        }
+      ],
+      "unit": "% change on the same month a year earlier"
+    }
+  },
+  {
     "date": "2026-11-19",
     "file": "2026-11-19-net-fpi.png",
     "title": "Daily net FPI investment in India, March to November 2026",

@@ -5,6 +5,11 @@ Reads charts/charts.json (newest entry = chart of the day). Each entry:
    "alt": "what the chart shows, for screen readers", "source": "...",
    "file_mobile": "optional portrait version shown on phones (e.g. 1080x1350)"}
 
+Optional "interactive": a spec drawn by assets/cod.js, with the image as fallback.
+  Time series (default): {"data", "x", "measures", ...}
+  Ranked bars: {"type": "rank", "data", "name", "value", "kind", "groups", "counts", "ref",
+                "short", "extra", "up", "down", "vname", "unit"} (see rank() in assets/cod.js)
+
 Run: python tools/update_charts.py   (the GitHub Action runs it whenever charts/ changes)
 """
 import datetime as dt

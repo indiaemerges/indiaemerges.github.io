@@ -11,6 +11,8 @@ async function build(box){
   const spec=JSON.parse(box.getAttribute('data-spec'));let rows;
   try{rows=await d3.csv(spec.data);}catch(e){return;}
   if(!rows||!rows.length)return;
+  if(spec.type==='rank')return rank(box,spec,rows);
+  if(spec.type==='line')return line(box,spec,rows);
   const L=rows.map(r=>r[spec.x]),col=c=>rows.map(r=>r[c]===''||r[c]==null?null:+r[c]);
   const st={m:0,view:'total',a:0,b:L.length-1};
   const ui=box.querySelector('.cod-ui'),plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend');
@@ -33,6 +35,45 @@ async function build(box){
   }
   controls();draw();box.classList.add('ready');
   let t;window.addEventListener('resize',()=>{clearTimeout(t);t=setTimeout(draw,180);});
+}
+
+/* Ranked bars: the biggest rises and falls of one measure across items, with an optional reference row in between.
+   spec: {type:'rank', data, name, full?, value, kind, groups:[[label, column, value or '!value']], counts:[10,20],
+          ref:{name,value}, short:{full name: short name}, up, down, extra:[[column,label,kind]], vname, unit} */
+function rank(box,spec,rows){
+  const ui=box.querySelector('.cod-ui'),plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend'),h=IE.h;
+  const groups=spec.groups||[['All',null,null]],counts=spec.counts||[10];
+  const st={g:0,n:counts[0]},UP=spec.up||{name:'Prices up',color:'#F590C6'},DN=spec.down||{name:'Prices down',color:'#6FD3EA'};
+  const items=rows.map(r=>({r,name:(spec.short||{})[r[spec.name]]||r[spec.name],full:r[spec.name],v:r[spec.value]===''?null:+r[spec.value]})).filter(d=>d.v!=null&&isFinite(d.v));
+  function controls(){ui.textContent='';
+    if(groups.length>1)ui.appendChild(h('div',{class:'ctl'},[h('span',{class:'lab',text:'Items'}),IE.seg(groups.map((g,k)=>[k,g[0]]),st.g,v=>{st.g=v;controls();draw();})]));
+    if(counts.length>1)ui.appendChild(h('div',{class:'ctl'},[h('span',{class:'lab',text:'Show'}),IE.seg(counts.map(c=>[c,'Top '+c+' each way']),st.n,v=>{st.n=v;controls();draw();})]));}
+  function draw(){
+    const g=groups[st.g],pick=g[1]==null?items:items.filter(d=>g[2].charAt(0)==='!'?d.r[g[1]]!==g[2].slice(1):d.r[g[1]]===g[2]);
+    const s=pick.slice().sort((a,b)=>b.v-a.v),n=Math.min(st.n,Math.floor(s.length/2)),top=s.slice(0,n),bot=s.slice(s.length-n);
+    const ex=d=>(spec.extra||[]).map(e=>{const v=d.r[e[0]];return v===''||v==null?'':'<div class="r"><span>'+IE.esc(e[1])+'</span><b>'+(isNaN(+v)?IE.esc(v):IE.fmt(+v,e[2]||spec.kind))+'</b></div>';}).join('');
+    const col=d=>Object.assign({},d,{color:d.v>0?UP.color:d.v<0?DN.color:'#8E949A',extra:ex(d)});
+    const list=top.map(col);
+    if(spec.ref)list.push({name:spec.ref.name,full:spec.ref.name,v:spec.ref.value,color:'#FFFFFF',hl:true});
+    bot.forEach(d=>list.push(col(d)));
+    lg.innerHTML=[UP,DN].map(i=>'<span>'+IE.sw(i.color)+IE.esc(i.name)+'</span>').join('')+(spec.ref?'<span>'+IE.sw('#FFFFFF')+IE.esc(spec.ref.name)+'</span>':'');
+    IE.rankBars(plot,{items:list,keep:true,kind:spec.kind||'pct',vname:spec.vname||'Value',unit:spec.unit,label:spec.title||'Chart',rh:window.innerWidth<640?26:28});
+  }
+  controls();draw();box.classList.add('ready');
+  let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
+}
+/* Plain line chart over months, no controls.
+   spec {type:'line', data, x, series:[[column,name,color,endValue,short]], kind, unit, hlines}; the legend shows each line's latest value */
+function line(box,spec,rows){
+  const plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend'),M=rows.map(r=>r[spec.x]),n=M.length-1,K=spec.kind||'pct';
+  const S=spec.series.map((s,k)=>{const pts=rows.map((r,i)=>[i,r[s[0]]===''||r[s[0]]==null?null:+r[s[0]]]),last=pts.filter(p=>p[1]!=null).pop();
+    return {name:s[1],color:s[2],endValue:!!s[3],bold:k===0,pts,last:last?last[1]:null,short:(s[4]||s[1])+(last?' '+IE.fmt(last[1],K):'')};});
+  lg.innerHTML=S.map(s=>'<span>'+IE.sw(s.color,1)+IE.esc(s.name)+(s.last!=null?' <b>'+IE.fmt(s.last,K)+'</b>':'')+'</span>').join('')+((spec.hlines||[]).length&&spec.hlines_name?'<span><i class="sw ln" style="background:repeating-linear-gradient(90deg,#9a9a9a 0 5px,transparent 5px 9px)"></i>'+IE.esc(spec.hlines_name)+'</span>':'');
+  const mN=i=>+M[i].slice(0,4)*12+(+M[i].slice(5,7)-1);
+  function draw(){IE.lineChart(plot,{labels:M.map(m=>n>30?m.slice(0,4):MON[+m.slice(5,7)-1]),series:S,kind:K,unit:spec.unit,hlines:spec.hlines,endLabels:spec.endLabels!==false,label:spec.title||'Chart',
+    align:mN,minStep:n>30?12:1,tickLabel:i=>n>30?M[i].slice(0,4):MON[+M[i].slice(5,7)-1],tipTitle:i=>MON[+M[i].slice(5,7)-1]+' '+M[i].slice(0,4),height:window.innerWidth<640?340:440});}
+  draw();box.classList.add('ready');
+  let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
 }
 function init(){if(!window.IE||!window.d3)return;if(!document.getElementById('tip'))document.body.appendChild(IE.h('div',{id:'tip',role:'status'}));document.querySelectorAll('.cod-int[data-spec]').forEach(build);}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
