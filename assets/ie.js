@@ -30,8 +30,8 @@ IE.fmt=function(v,kind){
     default:return IE.IN(v,a<10?2:0);
   }
 };
-IE.tickFmt=function(kind,max){
-  if(kind==='pct'||kind==='pct2')return v=>d3.format(max<5?'.1f':'.0f')(v).replace('-','−')+'%';
+IE.tickFmt=function(kind,max,step){const dp=step==null?null:step>=1?0:step>=.1?1:2;
+  if(kind==='pct'||kind==='pct2')return v=>d3.format('.'+(dp==null?(max<5?1:0):dp)+'f')(v).replace('-','−')+'%';
   if(kind==='idx'||kind==='x')return d3.format(max<5?'.1f':'.0f');
   if(kind==='pp')return v=>d3.format(max<5?'.1f':'.0f')(v).replace('-','−');
   if(kind==='rs')return v=>max>=2e5?'₹'+d3.format('.1f')(v/1e5)+'L':'₹'+IE.IN(v);
@@ -127,7 +127,7 @@ IE.lineChart=function(el,o){
   const m={t:bandTop(o),r:end?168:16,b:34,l:10};
   const all=series.flatMap(s=>s.pts);let a=d3.min(all,p=>p[0]),b=d3.max(all,p=>p[0]);if(a===b){a=Math.max(0,a-1);b=Math.min(L.length-1,b+1);}
   let lo=d3.min(all,p=>p[1]),hi=d3.max(all,p=>p[1]);if(o.zero!==false&&o.kind!=='idx'){lo=Math.min(0,lo);hi=Math.max(0,hi);}if(lo===hi){lo-=1;hi+=1;}
-  const y=d3.scaleLinear().domain([lo,hi]).nice(6).range([Ht-m.b,m.t]);const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));
+  const y=d3.scaleLinear().domain([lo,hi]).nice(6).range([Ht-m.b,m.t]);const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])),ticks.length>1?ticks[1]-ticks[0]:null);
   m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleLinear().domain([a,b]).range([m.l+8,W-m.r-8]);
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Line chart');
@@ -161,7 +161,7 @@ IE.barChart=function(el,o){
   const all=bars.concat(lines).flatMap(s=>s.pts),a=d3.min(all,p=>p[0]),b=d3.max(all,p=>p[0]);
   const W=el.clientWidth||600,Ht=o.height||(W>640?400:320),m={t:bandTop(o),r:10,b:34,l:50};
   const y=d3.scaleLinear().domain([Math.min(0,d3.min(all,p=>p[1])),Math.max(0,d3.max(all,p=>p[1]))]).nice(6).range([Ht-m.b,m.t]);
-  const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
+  const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])),ticks.length>1?ticks[1]-ticks[0]:null);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(bars.length>1?.22:.18),xc=i=>x(i)+x.bandwidth()/2;
   const xi=d3.scaleBand().domain(d3.range(Math.max(1,bars.length))).range([0,x.bandwidth()]).paddingInner(bars.length>1?.08:0);
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Bar chart');
@@ -208,7 +208,7 @@ IE.colChart=function(el,o){
   const L=o.labels,idx=d3.range(L.length).filter(i=>o.vals[i]!=null&&isFinite(o.vals[i]));el.textContent='';if(!idx.length)return empty(el,o.empty);
   const a=idx[0],b=idx[idx.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?360:300),m={t:bandTop(o),r:10,b:34,l:50};
   const vals=idx.map(i=>o.vals[i]);const y=d3.scaleLinear().domain([Math.min(0,d3.min(vals)),Math.max(0,d3.max(vals))]).nice(5).range([Ht-m.b,m.t]);
-  const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
+  const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])),ticks.length>1?ticks[1]-ticks[0]:null);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.18),xc=i=>x(i)+x.bandwidth()/2;
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Column chart');
   yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step(),a,b);
@@ -266,8 +266,8 @@ IE.stackChart=function(el,o){
   const a=yrs[0],b=yrs[yrs.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?380:320),m={t:bandTop(o),r:8,b:34,l:50};
   const rows=d3.range(a,b+1).map(i=>{const r={i};o.keys.forEach((k,j)=>r[j]=k.vals[i]==null?0:k.vals[i]);return r;});
   const stk=d3.stack().keys(d3.range(o.keys.length)).offset(d3.stackOffsetDiverging)(rows);
-  const lv=o.line?d3.range(a,b+1).map(i=>o.line.vals[i]).filter(v=>v!=null):[];const y=d3.scaleLinear().domain([Math.min(0,d3.min(stk,s=>d3.min(s,d=>d[0])),d3.min(lv)??0),Math.max(d3.max(stk,s=>d3.max(s,d=>d[1]))||1,d3.max(lv)??0)]).nice(5).range([Ht-m.b,m.t]);
-  const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,y.domain()[1]);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
+  const lv=o.line?d3.range(a,b+1).map(i=>o.line.vals[i]).filter(v=>v!=null):[];const y=d3.scaleLinear().domain([Math.min(0,d3.min(stk,s=>d3.min(s,d=>d[0])),d3.min(lv)??0),Math.max(d3.max(stk,s=>d3.max(s,d=>d[1]))||1,d3.max(lv)??0)]).nice(5).range([Ht-m.b,m.t]);if(o.max!=null&&y.domain()[1]>o.max)y.domain([y.domain()[0],o.max]);
+  const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,y.domain()[1],ticks.length>1?ticks[1]-ticks[0]:null);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.14),xc=i=>x(i)+x.bandwidth()/2;
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Stacked columns');
   yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step(),a,b);
@@ -350,7 +350,16 @@ IE.scatterChart=function(el,o){
   if(o.onClick)g.on('click',(ev,p)=>o.onClick(p));
 };
 
-/* ---------- India state map (needs topojson + window.GEO) ---------- */
+/* ---------- India state map (needs topojson + window.GEO) ----------
+   Values are written on each state. A state too small for its label gets a callout into empty space
+   (sea or beyond the border) if one is defined below; labels that would overlap are left off, and every
+   value is still in the tooltip. o.labels:false turns labels off; o.labelFmt(v) overrides the format. */
+IE.fmtShort=function(v,kind){if(v==null||!isFinite(v))return '';const a=Math.abs(v),m=v<0?'−':'';
+  switch(kind){case 'pct':case 'pct2':return m+(a>=100?a.toFixed(0):a>=1||a===0?a.toFixed(1):a.toFixed(2))+'%';case 'pp':return (v>0?'+':m)+a.toFixed(1);
+    case 'cr':return m+(a>=1e5?(a/1e5).toFixed(a>=1e6?0:1)+'L':IE.IN(Math.round(a)));case 'rs':return m+'₹'+(a>=1e5?(a/1e5).toFixed(1)+'L':a>=1e3?Math.round(a/1e3)+'k':Math.round(a));
+    case 'num':case 'pop':return m+(a>=1e7?(a/1e7).toFixed(1)+'cr':a>=1e5?(a/1e5).toFixed(1)+'L':IE.IN(Math.round(a)));default:return m+(a>=100?IE.IN(Math.round(a)):a.toFixed(1));}};
+const CALLOUT={'Goa':[-.075,.012],'Kerala':[-.075,.03],'Puducherry':[.075,0],'Sikkim':[0,-.05],'Tripura':[-.045,.06],'Mizoram':[.055,.045],'Manipur':[.065,.01],
+  'Nagaland':[.065,-.025],'Meghalaya':[-.035,.05],'NCT Delhi':[-.075,.012],'Andaman and Nicobar Islands':[-.06,0],'Dadra and Nagar Haveli and Daman and Diu':[-.07,-.01],'Lakshadweep':[.04,0]};
 IE.mapChart=function(el,o){
   el.textContent='';const FEAT=topojson.feature(window.GEO,window.GEO.objects.states).features;
   const W=el.clientWidth||520,Ht=Math.min(680,W*1.08),proj=d3.geoMercator().fitExtent([[4,4],[W-4,Ht-4]],{type:'FeatureCollection',features:FEAT}),path=d3.geoPath(proj);
@@ -358,10 +367,39 @@ IE.mapChart=function(el,o){
   const look=f=>o.lookup?o.lookup(f.properties.n):f.properties.n;
   svg.selectAll('path').data(FEAT).join('path').attr('d',path).attr('fill',f=>{const v=o.values[look(f)];return v==null||!o.cl?'#161616':o.cl.f(v);}).attr('stroke','#000').attr('stroke-width',.8)
     .style('cursor',f=>o.onClick&&o.values[look(f)]!=null?'pointer':null)
-    .on('mousemove',function(ev,f){const n=look(f),v=o.values[n];d3.select(this).attr('stroke','#fff').attr('stroke-width',1.6).raise();
+    .on('mousemove',function(ev,f){const n=look(f),v=o.values[n];d3.select(this).attr('stroke','#fff').attr('stroke-width',1.6).raise();lab.raise();
       IE.tip.show(o.tipHtml?o.tipHtml(f.properties.n,n,v):'<div class="t">'+esc(f.properties.n)+(n!==f.properties.n?' (data for '+esc(n)+')':'')+'</div><div class="r"><span>'+esc(o.title||'')+'</span><b>'+IE.fmt(v,o.kind)+'</b></div>'+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev);})
     .on('mouseleave',function(){d3.select(this).attr('stroke','#000').attr('stroke-width',.8);IE.tip.hide();})
     .on('click',(ev,f)=>{const n=look(f);if(o.onClick&&o.values[n]!=null)o.onClick(n);});
+  const lab=svg.append('g').attr('pointer-events','none');
+  if(o.labels===false)return;
+  const fs=W<460?11:13,cw=fs*.64,lf=o.labelFmt||(v=>IE.fmtShort(v,o.kind)),placed=[];
+  // a label whose value is shared with another state (e.g. Ladakh showing Jammu and Kashmir) is written once
+  const seen=new Set();
+  const items=FEAT.map(f=>{const n=look(f),v=o.values[n];if(v==null||!isFinite(v))return null;const c=path.centroid(f),b=path.bounds(f);
+      return {f,n,v,c,b,area:path.area(f),t:lf(v)};}).filter(d=>d&&isFinite(d.c[0])).sort((p,q)=>q.area-p.area);
+  const fits=(r)=>r.x0>=2&&r.x1<=W-2&&r.y0>=2&&r.y1<=Ht-2&&!placed.some(p=>!(r.x1<p.x0||r.x0>p.x1||r.y1<p.y0||r.y0>p.y1));
+  const box=(x,y,t)=>{const w=t.length*cw+8,hh=fs+4;return {x0:x-w/2,x1:x+w/2,y0:y-hh/2,y1:y+hh/2};};
+  const later=[];
+  // a label goes where its whole box lies inside the state: the centroid if possible, else the nearest point that works
+  const inside=(f,x,y)=>{const ll=proj.invert([x,y]);return ll&&d3.geoContains(f,ll);};
+  const within=(f,r)=>{const ix=(r.x1-r.x0)*.18,iy=(r.y1-r.y0)*.2;return [[r.x0+ix,r.y0+iy],[r.x1-ix,r.y0+iy],[r.x0+ix,r.y1-iy],[r.x1-ix,r.y1-iy],[(r.x0+r.x1)/2,(r.y0+r.y1)/2]].every(q=>inside(f,q[0],q[1]));};  // a slight overhang at the edges is allowed
+  items.forEach(d=>{if(d.n!==d.f.properties.n&&seen.has(d.n))return;
+    const bw=d.b[1][0]-d.b[0][0],bh=d.b[1][1]-d.b[0][1],w0=box(0,0,d.t);
+    if(bw>=(w0.x1-w0.x0)*1.05&&bh>=fs*1.4){
+      let best=null,bd=1e9;const r0=box(d.c[0],d.c[1],d.t);if(within(d.f,r0)&&fits(r0))best=r0;
+      else{const st=Math.max(3,fs/2);for(let x=d.b[0][0];x<=d.b[1][0];x+=st)for(let y=d.b[0][1];y<=d.b[1][1];y+=st){const dd=(x-d.c[0])**2+(y-d.c[1])**2;if(dd>=bd)continue;const r=box(x,y,d.t);if(within(d.f,r)&&fits(r)){best=r;bd=dd;}}}
+      if(best){placed.push(best);seen.add(d.n);d.r=best;return;}}
+    later.push(d);});
+  // small states: callout into empty space, after the big ones are placed
+  later.forEach(d=>{const co=CALLOUT[d.f.properties.n];if(!co||seen.has(d.n))return;const x=d.c[0]+co[0]*W,y=d.c[1]+co[1]*Ht,r=box(x,y,d.t);if(!fits(r))return;placed.push(r);seen.add(d.n);d.r=r;d.lead=true;});
+  items.filter(d=>d.r).forEach(d=>{const x=(d.r.x0+d.r.x1)/2,y=(d.r.y0+d.r.y1)/2;
+    if(d.lead){lab.append('line').attr('x1',d.c[0]).attr('y1',d.c[1]).attr('x2',Math.max(d.r.x0,Math.min(d.r.x1,d.c[0]))).attr('y2',d.c[1]<d.r.y0?d.r.y0:d.c[1]>d.r.y1?d.r.y1:y).attr('stroke','#fff').attr('stroke-width',1).attr('stroke-opacity',.75);
+      lab.append('circle').attr('cx',d.c[0]).attr('cy',d.c[1]).attr('r',2).attr('fill','#fff');}
+    // on a light fill the label is black; on a dark fill or in a callout it is white with a black halo
+    const fc=d.lead||!o.cl?null:d3.rgb(o.cl.f(d.v)),lum=fc?(.2126*fc.r+.7152*fc.g+.0722*fc.b)/255:0,dark=lum>.55;
+    lab.append('text').attr('x',x).attr('y',y+fs*.36).attr('text-anchor','middle').attr('font-size',fs).attr('font-weight',600).attr('font-variant-numeric','tabular-nums')
+      .attr('paint-order','stroke').attr('stroke',dark?'none':'#000').attr('stroke-width',3).attr('stroke-linejoin','round').style('fill',dark?'#000':'#fff').text(d.t);});
 };
 
 /* ---------- simple view router on #hash ---------- */

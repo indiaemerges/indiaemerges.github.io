@@ -264,7 +264,7 @@ function vMap(){
     IE.mapChart(b,{values:vals,cl,kind,label:'Map of India by state: '+IND[id].name,lookup:n=>n==='Ladakh'&&YEARS[yi]<'2019-20'?'Jammu and Kashmir':n,
       tipHtml:(geo,n,v)=>'<div class="t">'+esc(geo)+(n!==geo?' (part of Jammu and Kashmir)':'')+'</div>'+(STATES.includes(n)?'<div class="r"><span>'+YEARS[yi]+'</span><b>'+fmt(v,kind)+'</b></div><div class="m">'+esc(unitText(id,u))+'</div>':'<div class="m">Union territory without its own budget in e-STATES</div>'),
       onClick:n=>{if(STATES.includes(n)){st.state=n;save();go('profile');}}});
-    c1.appendChild(h('p',{class:'est-note',text:'Select a state to open its profile.'+(cl.div?'':' Colour bands hold roughly equal numbers of states.')}));}
+    c1.appendChild(h('p',{class:'est-note',text:'Select a state to open its profile.'+(cl.div?'':' Colour bands hold roughly equal numbers of states.')+' States too small for a label are in the ranking.'}));}
   c2.appendChild(h('h3',{text:'Ranking: '+hd}));const n2=h('p',{class:'note',style:'margin-top:10px',text:unitText(id,u)+'. '+BASISNAME[M.basis[yi]]+' figures. The white bar is the all-states figure.'+(cl&&cl.div?(' Positive values are always pink and negative values always cyan'+(IND[id].kind==='bal'?' (for deficits, pink is a deficit and cyan a surplus)':'')+'.'+(pool?' Colour bands are fixed across all years, so shades can be compared year to year.':' Band edges are set by this year’s values.')):'')});
   const b2=h('div');c2.appendChild(b2);const ref=val(id,0,yi,u);const showRef=kind!=='cr'&&kind!=='pop';
   const items=STATES.slice(1).map(s=>({name:s,key:s,v:vals[s],color:cl&&vals[s]!=null?cl.f(vals[s]):null}));

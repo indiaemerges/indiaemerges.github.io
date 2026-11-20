@@ -261,7 +261,7 @@ function vStates(){
   const c1=card(hd),c2=card('Ranking: '+hd);row.appendChild(c1);row.appendChild(c2);
   if(cl)c1.appendChild(IE.scaleLegend(cl,kind));const b1=h('div');c1.appendChild(b1);
   IE.mapChart(b1,{values:vals,cl,kind,unit,title:AY[yi],lookup:n=>{if(n==='Ladakh'&&vals['Ladakh']==null)return 'Jammu & Kashmir';return GEO2ASI[n]||n;},onClick:n=>{st.s.state=n;save();draw();document.getElementById('profile').scrollIntoView();},label:'Map: '+hd});
-  foot(c1,'Select a state for its profile below. '+(div?'Pink is above zero, cyan below. ':'Colour bands hold roughly equal numbers of states. ')+'Dark areas have no data for this year.');
+  foot(c1,'Select a state for its profile below. '+(div?'Pink is above zero, cyan below. ':'Colour bands hold roughly equal numbers of states. ')+'Dark areas have no data for this year. States too small for a label are in the ranking.');
   const b2=h('div');c2.appendChild(b2);
   const all=aval({kind:'all'},ind,yi,m);const items=ASTATES.map(s=>({name:STNAME(s),key:s,v:vals[s],color:cl&&vals[s]!=null?cl.f(vals[s]):null}));
   if(all!=null&&m!=='share'&&kind!=='cr'&&kind!=='num')items.push({name:'All India',key:'All India',v:all,color:'#fff',hl:true});

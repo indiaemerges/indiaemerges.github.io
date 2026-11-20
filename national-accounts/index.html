@@ -26,14 +26,17 @@
 </div>
 <div id="tip" role="status"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script src="/assets/ie.js"></script>
+<script src="/assets/india-geo.js"></script>
 <script>
 (async function(){
 "use strict";
 const {h,esc,fmt}=IE;
 const main=document.getElementById('main'),bar=document.getElementById('bar');
 let D;
-try{D=await fetch('data/nas.json').then(r=>{if(!r.ok)throw new Error();return r.json();});}
+let SD;
+try{[D,SD]=await Promise.all(['data/nas.json','data/states.json'].map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error(u);return r.json();})));}
 catch(e){main.innerHTML='<p class="empty">The data file did not load. Reload the page to try again.</p>';return;}
 
 /* ================= catalogue ================= */
@@ -107,16 +110,16 @@ const sectorShare=(fr,b,k,i)=>{const t=sectSum(fr,b,0,i),v=lv(fr,b,'gva.'+k,0,i)
 /* ================= state ================= */
 const LQ=D.meta.latest.b22_q,LA=D.meta.latest.b22_a;
 const DEF0={g:{base:'b22',freq:'q',a:null,b:null},s:{base:'b22',freq:'q',meas:'g',sel:['gva','gva.agri','gva.mfg','gva.cons','gva.fin'],a:null,b:null},
-  d:{base:'b22',freq:'q',meas:'cg',a:null,b:null},v:{base:'b11',a:null,b:null},x:{base:'b22',freq:'q',meas:'g',sel:['gdp','pfce','gfcf'],a:null,b:null}};
+  d:{base:'b22',freq:'q',meas:'cg',a:null,b:null},v:{base:'b11',a:null,b:null},x:{base:'b22',freq:'q',meas:'g',sel:['gdp','pfce','gfcf'],a:null,b:null},r:{base:'b11',meas:'g',yi:null,state:'Maharashtra'}};
 const SAVED=IE.store.get('ie-nas1',{});const st={};Object.keys(DEF0).forEach(k=>st[k]=Object.assign({},DEF0[k],SAVED[k]||{}));
 Object.values(st).forEach(s=>{if(!BASES[s.base])s.base='b22';if(s.freq&&!['a','q'].includes(s.freq))s.freq='q';});
 const save=()=>IE.store.set('ie-nas1',st);
 document.getElementById('asof').textContent='Quarterly GDP to '+qLong(LQ)+' · Annual estimates to '+LA+' · Updated '+D.meta.fetched.slice(0,10);
 
-const VIEWS=[['overview','Overview'],['growth','Growth'],['sectors','Sectors'],['demand','Demand'],['saving','Saving and investment'],['explore','All series'],['methods','Sources and methods']];
+const VIEWS=[['overview','Overview'],['growth','Growth'],['sectors','Sectors'],['demand','Demand'],['saving','Saving and investment'],['explore','All series'],['states','States'],['methods','Sources and methods']];
 const R=IE.router(VIEWS,'overview',render);
-const BARS={overview:()=>{},growth:barGrowth,sectors:barSect,demand:barDem,saving:barSave,explore:barX,methods:()=>{}};
-const VS={overview:vOverview,growth:vGrowth,sectors:vSect,demand:vDem,saving:vSave,explore:vX,methods:vMethods};
+const BARS={overview:()=>{},growth:barGrowth,sectors:barSect,demand:barDem,saving:barSave,explore:barX,states:barStates,methods:()=>{}};
+const VS={overview:vOverview,growth:vGrowth,sectors:vSect,demand:vDem,saving:vSave,explore:vX,states:vStates,methods:vMethods};
 function render(){R.tabs(document.getElementById('tabs'));bar.textContent='';IE.tip.hide();BARS[R.get()]();draw();}
 function draw(){main.textContent='';VS[R.get()]();}
 const later=[];const queue=f=>later.push(f);const flush=()=>{while(later.length)later.shift()();};
@@ -211,7 +214,7 @@ function vSect(){
     const keys=SECT.map(([k,n,sh,col])=>({name:sh,color:col,vals:P.map((p,i)=>rng(i)?(m==='pgva'?sectorShare(fr,b,k,i):val(fr,b,'gva.'+k,m,i)):null)}));
     lg.appendChild(IE.legend(keys.slice()));
     const line=m==='cgva'?{name:'Real GVA growth (sum of sectors)',color:'#fff',kind:'pct',vals:P.map((p,i)=>{if(!rng(i))return null;const j=prevI(fr,b,i),a=sectSum(fr,b,1,i),z=sectSum(fr,b,1,j);return a!=null&&z?(a/z-1)*100:null;})}:null;
-    IE.stackChart(bb,Object.assign({labels:P.map(pLab),keys,kind,unit,line,totalName:m==='pgva'?'Total':m==='cgva'?'Sum of contributions':'Total GVA',noTotal:m==='pgva',label:'GVA by sector'},ax));
+    IE.stackChart(bb,Object.assign({labels:P.map(pLab),keys,kind,unit,line,totalName:m==='pgva'?'Total':m==='cgva'?'Sum of contributions':'Total GVA',noTotal:m==='pgva',max:m==='pgva'?100:null,label:'GVA by sector'},ax));
     foot(c,BASES[b].name+'. Eight broad sectors as MoSPI publishes them. '+(m==='pgva'?'Shares are of the sum of the eight sectors. ':'')+(m==='cgva'?'Each sector’s change on a year earlier as a share of total real GVA a year earlier; the white line is total real GVA growth. ':'')+(b==='b11'?'Before 2004-05 the back-series sectors do not add up exactly to MoSPI’s published GVA total, because MoSPI linked each sector to the 2011-12 base separately; see Sources and methods.':''));
   }else{
     const opts=[{group:'Total',items:[['gva','Total GVA']]},{group:'Broad sectors',items:SECT.map(x=>['gva.'+x[0],x[1]])},{group:'Detailed industries'+(fr==='q'?' (annual only)':''),items:subIds(fr,b).map(id=>[id,nameOf(id)])}].map(g=>({group:g.group,items:g.items.filter(x=>!s.sel.includes(x[0])&&has(fr,b,x[0]))})).filter(g=>g.items.length);
@@ -338,6 +341,83 @@ function vX(){
   numbers(['Series ('+unit+')'].concat(yrs.map(i=>pLab(P[i]))),rows,kind);
 }
 
+/* ================= States ================= */
+// MoSPI's state accounts are on the 2011-12 base only; India figures here use the same base
+const SY=SD.years,SS=SD.states,NSY=SY.length;
+const sv=(id,si,yi,c)=>{const a=SD.v[id];if(!a||si<0||yi<0||yi>=NSY)return null;const v=a[c][si][yi];return v==null?null:v;};
+const SERV=['trade','fin','pub'];
+const sgdp=(si,yi)=>sv('gsdp',si,yi,0);
+function sectSumS(si,yi){let t=0;for(const [k] of SECT){const v=sv('gsva.'+k,si,yi,0);if(v==null)return null;t+=v;}return t;}
+const indiaI=y=>pidx('a','b11')[y];
+const RMEAS=[{group:'Growth',items:[['g','Real GSDP growth'],['gn','Nominal GSDP growth'],['pcg','Real growth of GSDP per person']]},
+  {group:'Size',items:[['gsdp','GSDP, current prices'],['shr','GSDP as a share of India’s GDP'],['pc','GSDP per person, current prices']]},
+  {group:'What the state produces (share of its GVA)',items:SECT.map(([k,n])=>['sh.'+k,n]).concat([['sh.srv','All services']])}];
+const RM={};RMEAS.forEach(g=>g.items.forEach(([k,n])=>RM[k]=n));
+function rval(m,si,yi){
+  switch(m){
+    case 'g':{const a=sv('gsdp',si,yi,1),b=sv('gsdp',si,yi-1,1);return a!=null&&b?(a/b-1)*100:null;}
+    case 'gn':{const a=sv('gsdp',si,yi,0),b=sv('gsdp',si,yi-1,0);return a!=null&&b?(a/b-1)*100:null;}
+    case 'pcg':{const a=sv('pcgsdp',si,yi,1),b=sv('pcgsdp',si,yi-1,1);return a!=null&&b?(a/b-1)*100:null;}
+    case 'gsdp':return sgdp(si,yi);
+    case 'pc':return sv('pcgsdp',si,yi,0);
+    case 'shr':{const g=sgdp(si,yi),j=indiaI(SY[yi]),n=j==null?null:lv('a','b11','gdp',0,j);return g!=null&&n?g/n*100:null;}
+  }
+  if(m.startsWith('sh.')){const t=sectSumS(si,yi);if(!t)return null;const k=m.slice(3);
+    const v=k==='srv'?SERV.reduce((s,x)=>{const y=sv('gsva.'+x,si,yi,0);return s==null||y==null?null:s+y;},0):sv('gsva.'+k,si,yi,0);return v==null?null:v/t*100;}
+  return null;}
+const rkind=m=>m==='gsdp'?'cr':m==='pc'?'rs':'pct';
+const runit=m=>({g:'% change on previous year, constant 2011-12 prices',gn:'% change on previous year, current prices',pcg:'% change on previous year, constant 2011-12 prices',gsdp:'₹ crore, current prices',pc:'₹ per person, current prices',shr:'% of India’s GDP, current prices, 2011-12 base'}[m]||'% of the state’s GVA, current prices');
+// India's figure for the same measure, where there is one
+function rIndia(m,yi){const j=indiaI(SY[yi]);if(j==null)return null;if(m==='g'||m==='gn')return val('a','b11','gdp',m,j);
+  if(m.startsWith('sh.')){const t=sectSum('a','b11',0,j);if(!t)return null;const k=m.slice(3);const v=k==='srv'?SERV.reduce((s,x)=>s+(lv('a','b11','gva.'+x,0,j)||0),0):lv('a','b11','gva.'+k,0,j);return v==null?null:v/t*100;}return null;}
+const covered=yi=>SS.filter((s,si)=>sgdp(si,yi)!=null).length;
+function barStates(){const s=st.r;if(!RM[s.meas])s.meas='g';
+  if(s.yi==null||s.yi>=NSY||s.yi<1){s.yi=NSY-1;while(s.yi>1&&covered(s.yi)<SS.length*.8)s.yi--;}
+  bar.appendChild(IE.ctl('Measure',IE.sel(RMEAS,s.meas,v=>{s.meas=v;save();draw();})));
+  bar.appendChild(IE.yearCtl(SY,s.yi,i=>{s.yi=Math.max(1,i);save();draw();},i=>covered(i)+' of '+SS.length+' states',{play:true}));}
+function vStates(){
+  const s=st.r,m=s.meas,yi=s.yi,kind=rkind(m),unit=runit(m),div=m==='g'||m==='gn'||m==='pcg',y=SY[yi];
+  const vals={};SS.forEach((n,si)=>vals[n]=rval(m,si,yi));
+  let pool=null;if(div){pool=[];SS.forEach((n,si)=>{for(let i=1;i<NSY;i++){const v=rval(m,si,i);if(v!=null&&isFinite(v))pool.push(v);}});}
+  const cl=IE.classer(Object.values(vals),div?{pool}:false),hd=RM[m]+', '+y+' ('+(kind==='pct'?'%':kind==='cr'?'₹ crore':'₹ per person')+')';
+  const row=h('div',{class:'maprow'});main.appendChild(row);
+  const c1=card(hd),c2=card('Ranking: '+hd);row.appendChild(c1);row.appendChild(c2);
+  if(cl){c1.appendChild(IE.scaleLegend(cl,kind,'no data'));const b1=h('div');c1.appendChild(b1);
+    IE.mapChart(b1,{values:vals,cl,kind,unit,title:y,label:'Map: '+hd,lookup:n=>n==='Ladakh'&&vals['Ladakh']==null&&y<'2019-20'?'Jammu and Kashmir':n,
+      onClick:n=>{st.r.state=n;save();draw();document.getElementById('sprof').scrollIntoView();}});}
+  else c1.appendChild(h('p',{class:'empty',text:'No state has this figure for '+y+'.'}));
+  foot(c1,(div?'Pink is growth, cyan a fall; the colour bands are fixed across all years. ':'Colour bands hold roughly equal numbers of states. ')+(kind==='cr'?'Labels in ₹ crore; L is lakh crore. ':'')+'Select a state for its profile below. Dark areas have no data for '+y+'. States too small for a label are in the ranking.');
+  const b2=h('div');c2.appendChild(b2);const ind=rIndia(m,yi);
+  const items=SS.map((n,si)=>({name:n,key:n,v:vals[n],color:cl&&vals[n]!=null?cl.f(vals[n]):null}));if(ind!=null)items.push({name:'India',key:null,v:ind,color:'#fff',hl:true});
+  IE.rankBars(b2,{items,kind,unit,vname:y,rh:24,onClick:d=>{if(d.key){st.r.state=d.key;save();draw();document.getElementById('sprof').scrollIntoView();}}});
+  foot(c2,unit+'. '+(ind!=null?'The white bar is India as a whole, from the national accounts. ':'')+covered(yi)+' of '+SS.length+' states and union territories have GSDP for '+y+(yi===NSY-1?'; the rest have not yet published it':'')+'.');
+  // profile
+  const sn=s.state,si=SS.indexOf(sn)<0?SS.indexOf('Maharashtra'):SS.indexOf(sn);const nm=SS[si];
+  main.appendChild(h('h2',{id:'sprof',text:nm+': economy profile',style:'margin-top:30px'}));
+  main.appendChild(h('div',{class:'row'},[IE.ctl('State or UT',IE.sel(SS.map(x=>[x,x]),nm,v=>{st.r.state=v;save();draw();document.getElementById('sprof').scrollIntoView();}))]));
+  const g=h('div',{class:'grid g2'});main.appendChild(g);const ax={align:i=>+SY[i].slice(0,4),steps:IE.YEAR_STEPS,tipTitle:i=>fyLong(SY[i])};
+  { const c=card('Real growth: '+nm+' and India (% change on previous year)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    const S=[{name:nm,color:'#6FD3EA',pts:SY.map((x,i)=>[i,rval('g',si,i)])},{name:'India (GDP)',color:'#FFFFFF',pts:SY.map((x,i)=>[i,rIndia('g',i)])}];
+    queue(()=>IE.growthChart(b,Object.assign({labels:SY,series:S,kind:'pct',unit:'% change on previous year, constant 2011-12 prices',label:nm+' growth'},ax)));
+    foot(c,'Real GSDP growth, calculated from MoSPI’s GSDP at constant 2011-12 prices.'); }
+  { const c=card(nm+'’s share of India’s GDP (%)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    queue(()=>IE.lineChart(b,Object.assign({labels:SY,series:[{name:nm,color:'#6FD3EA',pts:SY.map((x,i)=>[i,rval('shr',si,i)])}],kind:'pct',unit:'% of India’s GDP, current prices',zero:false,label:nm+' share'},ax)));
+    foot(c,'GSDP divided by India’s GDP, both at current prices on the 2011-12 base. States’ GSDP is estimated separately from India’s GDP, so the shares of all states do not add up to exactly 100.'); }
+  { const c=card('What '+nm+' produces: share of GVA by sector (%)'),lg=h('div'),b=h('div');c.appendChild(lg);c.appendChild(b);g.appendChild(c);
+    const keys=SECT.map(([k,n,sh,col])=>({name:sh,color:col,vals:SY.map((x,i)=>{const t=sectSumS(si,i),v=sv('gsva.'+k,si,i,0);return t&&v!=null?v/t*100:null;})}));lg.appendChild(IE.legend(keys));
+    queue(()=>IE.stackChart(b,Object.assign({labels:SY,keys,kind:'pct',unit:'% of the state’s GVA, current prices',noTotal:true,max:100,label:nm+' GVA by sector'},ax)));
+    foot(c,'Gross state value added by sector at current prices, as a share of the sum of the eight sectors.'); }
+  { const c=card(nm+': GSDP per person (₹, current prices)'),b=h('div');c.appendChild(b);g.appendChild(c);
+    queue(()=>IE.lineChart(b,Object.assign({labels:SY,series:[{name:'Current prices',color:'#F3E67C',pts:SY.map((x,i)=>[i,sv('pcgsdp',si,i,0)])},{name:'Constant 2011-12 prices',color:'#6FD3EA',pts:SY.map((x,i)=>[i,sv('pcgsdp',si,i,1)])}],kind:'rs',unit:'₹ per person',endLabels:false,label:nm+' GSDP per person'},ax)));
+    foot(c,'Yellow: current prices. Cyan: constant 2011-12 prices. MoSPI’s per capita GSDP, which divides GSDP by its own population projection for each state.'); }
+  flush();
+  const der=(SD.meta.gsdp_from_gsva||{})[nm];if(der)main.appendChild(h('p',{class:'note',text:'MoSPI’s API has no GSDP line for '+nm+'; GSDP here is its published GSVA plus taxes on products minus subsidies ('+der[0]+' to '+der[der.length-1]+').'}));
+  const rows=[['GSDP, ₹ crore, current prices'].concat(SY.map((x,i)=>sv('gsdp',si,i,0))),['GSDP, ₹ crore, constant 2011-12 prices'].concat(SY.map((x,i)=>sv('gsdp',si,i,1))),['Real GSDP growth, %'].concat(SY.map((x,i)=>{const v=rval('g',si,i);return v==null?null:+v.toFixed(2);})),
+    ['GSDP per person, ₹, current prices'].concat(SY.map((x,i)=>sv('pcgsdp',si,i,0))),['Share of India’s GDP, %'].concat(SY.map((x,i)=>{const v=rval('shr',si,i);return v==null?null:+v.toFixed(2);}))];
+  main.appendChild(h('h3',{text:'The numbers: '+nm,style:'margin-top:24px'}));main.appendChild(h('div',{class:'row'},[IE.copyBtn(()=>IE.toCSV(['Series'].concat(SY),rows))]));
+  main.appendChild(IE.table(['Series'].concat(SY),rows.map(r=>[r[0]].concat(r.slice(1).map(v=>v==null?'':/%$/.test(r[0])?v.toFixed(1):IE.IN(Math.round(v)))))));
+}
+
 /* ================= Methods ================= */
 function vMethods(){
   const P11=per('a','b11'),Q11=per('q','b11'),P22=per('a','b22'),Q22=per('q','b22');
@@ -369,6 +449,14 @@ function vMethods(){
 <li><b>Units label.</b> The API labels taxes and subsidies on products as ₹ lakh, but the figures are ₹ crore: taxes minus subsidies equals MoSPI’s net taxes exactly, and GVA plus net taxes equals GDP.</li>
 <li><b>Capital formation by industry.</b> MoSPI’s breakdown of gross capital formation by industry of use covers fixed investment and change in stocks but not valuables, so its total is smaller than gross capital formation in the spending accounts.</li>
 <li><b>What MoSPI publishes quarterly.</b> GDP, GVA by eight sectors and the main spending components. Income, saving, depreciation, institutional sectors and detailed industries are annual only.</li>
+</ul>
+<h3>States</h3>
+<ul>
+<li><b>Source.</b> MoSPI’s state accounts (GSDP, per capita GSDP, and gross state value added by industry), 2011-12 base, ${esc(SY[0])} to ${esc(SY[NSY-1])}, via the eSankhyiki API. MoSPI has not yet published state accounts on the 2022-23 base, so India comparisons in this view use the 2011-12 national series.</li>
+<li><b>Coverage.</b> States publish GSDP on their own timetable: ${covered(NSY-1)} of ${SS.length} states and union territories have a figure for ${esc(SY[NSY-1])}. The view opens on the latest year most states have published.</li>
+<li><b>Calculated here.</b> Growth rates from GSDP levels; shares of India’s GDP divide GSDP by India’s GDP at current prices; sector shares use the sum of the eight broad sectors, with trade, finance and public administration each the sum of MoSPI’s published parts. MoSPI publishes gross state value added, taxes and subsidies in ₹ lakh; they are shown in ₹ crore.</li>
+<li><b>States without a GSDP line.</b> ${esc(Object.keys(SD.meta.gsdp_from_gsva||{}).join(', ')||'None')}: the API carries their GSVA, taxes and subsidies but not GSDP, so GSDP is GSVA plus taxes on products minus subsidies on products, an identity that holds to within ₹0.5 crore for every state with both.</li>
+<li><b>Ladakh</b> became a separate union territory in 2019; before 2019-20 the map shows Jammu and Kashmir’s figure on it.</li>
 </ul>
 <h3>Updates</h3>
 <ul>

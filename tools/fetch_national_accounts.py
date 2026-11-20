@@ -210,10 +210,85 @@ def build():
     return out
 
 
+# ---------------------------------------------------------------- states (2011-12 base: MoSPI publishes no state series on the 2022-23 base yet)
+GEO_NAME = {"Andaman & Nicobar Islands": "Andaman and Nicobar Islands", "Delhi": "NCT Delhi", "Jammu & Kashmir": "Jammu and Kashmir"}
+STATE_CODES = ",".join(f"{i:02d}" for i in range(1, 38))
+
+
+def fetch_states():
+    """GSDP, per capita GSDP and GSVA by sector for each state, in ₹ crore.
+
+    MoSPI publishes GSVA, taxes and subsidies in ₹ lakh; they are divided by 100. For states whose GSDP line is
+    missing from the API (it carries GSVA, taxes and subsidies for them), GSDP is GSVA + taxes on products -
+    subsidies on products, the identity that holds to within ₹0.5 crore for every state that has both."""
+    jobs = [23, 31, 29, 33, 34]
+    with cf.ThreadPoolExecutor(5) as ex:
+        res = dict(zip(jobs, ex.map(lambda i: get("nas/getNASData", dict(base_year="2011-12", series="Current", frequency_code="Annually",
+                                                                       indicator_code=i, state_code=STATE_CODES)), jobs)))
+    val = {}  # (item, state, year) -> [cur, con]
+
+    def put(item, st, y, cur, con, scale=1.0):
+        st = GEO_NAME.get(st, st)
+        val[(item, st, y)] = [None if cur is None else round(cur / scale, 2), None if con is None else round(con / scale, 2)]
+
+    for r in res[23]:
+        put("gsdp", r["state"], r["year"], num(r["current_price"]), num(r["constant_price"]))
+    for r in res[31]:
+        put("pcgsdp", r["state"], r["year"], num(r["current_price"]), num(r["constant_price"]))
+    for code, item in ((33, "tp"), (34, "sub")):
+        for r in res[code]:
+            put(item, r["state"], r["year"], num(r["current_price"]), num(r["constant_price"]), 100)
+    parts = {k: [slug(c) for c in ps] for k, _, ps in BROAD if ps}
+    raw = {}
+    for r in res[29]:
+        if r.get("subindustry"):
+            continue
+        # the state tables call public administration and defence just "Public Administration"
+        ind = {"Public Administration": "Public Administration and Defence"}.get(r["industry"], r["industry"])
+        item = "gsva" if ind.startswith("Total") else "gsva." + (BROAD_ID.get(ind) or slug(ind))
+        put(item, r["state"], r["year"], num(r["current_price"]), num(r["constant_price"]), 100)
+        raw[(item, GEO_NAME.get(r["state"], r["state"]), r["year"])] = True
+    states = sorted({k[1] for k in val})
+    years = sorted({k[2] for k in val if fy(k[2])})
+    # broad tertiary sectors as the sum of their published parts (MoSPI's state tables give only the parts)
+    for k, ps in parts.items():
+        for st in states:
+            for y in years:
+                comps = [val.get(("gsva." + c, st, y)) for c in ps]
+                if ("gsva." + k, st, y) not in val and all(comps):
+                    cur = None if any(c[0] is None for c in comps) else round(sum(c[0] for c in comps), 2)
+                    con = None if any(c[1] is None for c in comps) else round(sum(c[1] for c in comps), 2)
+                    val[("gsva." + k, st, y)] = [cur, con]
+    derived = {}
+    for st in states:
+        for y in years:
+            g = val.get(("gsdp", st, y))
+            if g and g[0] is not None:
+                continue
+            a, t, s = (val.get((i, st, y)) for i in ("gsva", "tp", "sub"))
+            if a and t and s and None not in (a[0], t[0], s[0]):
+                con = None if None in (a[1], t[1], s[1]) else round(a[1] + t[1] - s[1], 2)
+                val[("gsdp", st, y)] = [round(a[0] + t[0] - s[0], 2), con]
+                derived.setdefault(st, []).append(y)
+    items = sorted({k[0] for k in val})
+    out = dict(meta=dict(fetched=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
+                         source="MoSPI National Accounts Statistics (state accounts, 2011-12 base) via the eSankhyiki API",
+                         unit="₹ crore; per capita GSDP in ₹", gsdp_from_gsva=derived),
+               years=years, states=states, v={})
+    for it in items:
+        cur = [[(val.get((it, st, y)) or [None, None])[0] for y in years] for st in states]
+        con = [[(val.get((it, st, y)) or [None, None])[1] for y in years] for st in states]
+        out["v"][it] = [cur, con]
+    return out
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     data = build()
     write_if_changed(OUT / "nas.json", data)
+    sd = fetch_states()
+    write_if_changed(OUT / "states.json", sd)
+    print("states:", len(sd["states"]), "years", sd["years"][0], "to", sd["years"][-1], "GSDP from GSVA:", sd["meta"]["gsdp_from_gsva"])
     m = data["meta"]["latest"]
     print("latest:", m, "items b22:", len(data["a"]["b22"]["items"]), "b11:", len(data["a"]["b11"]["items"]))
 

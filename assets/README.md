@@ -15,6 +15,7 @@ Every dashboard on indiaemerges.com uses these shared files, so a fix or a new f
 2. Write `tools/fetch_<name>.py` that writes `<folder>/data/*.json` with values exactly as published (reuse `get`, `num` and `write_if_changed` from `tools/fetch_industry.py`).
 3. Add `.github/workflows/update-<name>.yml` (copy `update-national-accounts.yml` and change the script and folder names).
 4. Add a card to the Dashboards section of the front page.
+5. If the data has state figures, add a map view: `IE.mapChart` beside `IE.rankBars`, with a year slider (`IE.yearCtl` with `{play:true}`) and a state profile below.
 
 Page skeleton:
 
@@ -55,7 +56,7 @@ All time charts take `labels` (one per period), points as `[index, value]`, `kin
 | `IE.comboChart(el, …)` | Daily bars with positive and negative colours and moving-average lines (chart of the day). |
 | `IE.rankBars(el, {items, …})` | Ranked horizontal bars; `ref` draws a white tick, `onClick` makes rows selectable. |
 | `IE.scatterChart(el, {pts, xkind, ykind, xTitle, tipHtml, onClick})` | Bubbles sized by `size`, labelled by `label`. |
-| `IE.mapChart(el, {values, cl, kind, lookup, tipHtml, onClick})` | India by state; colour classes from `IE.classer`. |
+| `IE.mapChart(el, {values, cl, kind, lookup, tipHtml, onClick, labels, labelFmt})` | India by state, colour classes from `IE.classer`, with each state's value written on it (`IE.fmtShort`). A label sits where it fits inside the state; small states get a callout into the sea or beyond the border; labels that would collide are left off and stay in the tooltip. Use it wherever a dataset has state figures, beside a ranking (`IE.rankBars`) so every value is readable. |
 | `IE.classer(values, div)` | Map colour classes: sequential quantiles, or diverging around zero (`{pool}` fixes the bands across years). `IE.scaleLegend` draws its key. |
 | `IE.spark(vals)` | Small trend line for tiles. |
 
