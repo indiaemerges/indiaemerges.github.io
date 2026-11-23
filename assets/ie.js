@@ -338,6 +338,38 @@ IE.rankBars=function(el,o){
     if(o.onClick)g.on('click',()=>o.onClick(d));});
 };
 
+/* ---------- dumbbell: two values per row (e.g. old survey vs new), joined by a line, with the gap at the right.
+   o: {rows:[{name, sub, a, b, gap, extra}], A:{name,color} (drawn as a ring), B:{name,color} (a filled dot), fmt(v), gapFmt(v), max, unit, label} ---------- */
+IE.dumbbell=function(el,o){
+  const rows=o.rows.filter(r=>r.a!=null&&r.b!=null);
+  csvOf(el,['Group','Detail',o.A.name,o.B.name,o.gapName||'Difference'],rows.map(r=>[r.name,r.sub||'',cnum(r.a),cnum(r.b),cnum(r.gap!=null?r.gap:r.b-r.a)]));
+  el.textContent='';if(!rows.length)return empty(el,o.empty);
+  const F=o.fmt||(v=>IE.fmt(v,o.kind||'pct')),G=o.gapFmt||(v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+' pp');
+  const W=el.clientWidth||600,narrow=W<560,lw=narrow?0:Math.min(250,W*.3),gw=narrow?0:110,rh=narrow?92:70,top=8,axh=34,Ht=top+rows.length*rh+axh;
+  const mx=o.max||d3.max(rows,r=>Math.max(r.a,r.b))*1.08,x=d3.scaleLinear().domain([0,mx]);if(!o.max)x.nice(4);x.range([lw+(narrow?22:18),W-gw-(narrow?48:62)]);
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Dumbbell chart');
+  const g=svg.append('g').attr('class','gridl');x.ticks(4).forEach(t=>g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',top).attr('y2',Ht-axh+4));
+  const ax=svg.append('g').attr('class','axis');x.ticks(4).forEach(t=>ax.append('text').attr('x',x(t)).attr('y',Ht-axh+26).attr('text-anchor','middle').text(IE.tickFmt(o.kind||'pct',mx,25)(t)));
+  if(!narrow)svg.append('text').attr('x',W-4).attr('y',top+14).attr('text-anchor','end').attr('font-size',13).style('fill','rgba(255,255,255,.72)').text(o.gapName||'Difference');
+  rows.forEach((r,i)=>{const y0=top+i*rh,cy=narrow?y0+rh-30:y0+rh/2+4,row=svg.append('g');
+    row.append('rect').attr('x',0).attr('y',y0).attr('width',W).attr('height',rh).attr('fill','transparent');
+    if(narrow){row.append('text').attr('x',0).attr('y',y0+24).attr('font-size',17).attr('font-weight',600).text(r.name).append('tspan').attr('font-weight',400).attr('font-size',14).style('fill','rgba(255,255,255,.72)').text(r.sub?'  '+r.sub:'');}
+    else{row.append('text').attr('x',lw-4).attr('y',cy-4).attr('text-anchor','end').attr('font-size',18).attr('font-weight',600).text(r.name);
+      if(r.sub)row.append('text').attr('x',lw-4).attr('y',cy+16).attr('text-anchor','end').attr('font-size',14).style('fill','rgba(255,255,255,.72)').text(r.sub);}
+    const xa=x(r.a),xb=x(r.b);
+    row.append('line').attr('x1',xa).attr('x2',xb).attr('y1',cy).attr('y2',cy).attr('stroke','#8a8a8a').attr('stroke-width',4).attr('stroke-linecap','round');
+    /* B (the newer value) is a filled dot; A is a ring drawn on top, so both stay visible when they nearly coincide */
+    const rr=narrow?8:10;row.append('circle').attr('cx',xb).attr('cy',cy).attr('r',rr).attr('fill',o.B.color).attr('stroke','#0e0e0e').attr('stroke-width',2.5);
+    row.append('circle').attr('cx',xa).attr('cy',cy).attr('r',rr+1).attr('fill','none').attr('stroke',o.A.color).attr('stroke-width',3.5);
+    const lo=Math.min(r.a,r.b),hi=Math.max(r.a,r.b);
+    row.append('text').attr('x',x(lo)-16).attr('y',cy+6).attr('text-anchor','end').attr('font-size',narrow?15:17).text(F(lo));
+    row.append('text').attr('x',x(hi)+17).attr('y',cy+6).attr('text-anchor','start').attr('font-size',narrow?15:17).text(F(hi));
+    const gp=r.gap!=null?r.gap:r.b-r.a;
+    /* on phones the difference sits on the name line, so the dumbbell gets the full width */
+    row.append('text').attr('x',W-4).attr('y',narrow?y0+24:cy+7).attr('text-anchor','end').attr('font-size',narrow?18:21).attr('font-weight',600).text(G(gp));
+    row.on('mousemove',ev=>IE.tip.show('<div class="t">'+esc(r.name)+(r.sub?' ('+esc(r.sub)+')':'')+'</div><div class="r"><span>'+IE.sw(o.A.color)+esc(o.A.name)+'</span><b>'+F(r.a)+'</b></div><div class="r"><span>'+IE.sw(o.B.color)+esc(o.B.name)+'</span><b>'+F(r.b)+'</b></div><div class="r"><span>'+esc(o.gapName||'Difference')+'</span><b>'+G(gp)+'</b></div>'+(r.extra||'')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev)).on('mouseleave',IE.tip.hide);});
+};
+
 /* ---------- sparkline ---------- */
 IE.spark=function(vals){const pts=vals.map((v,i)=>[i,v]).filter(p=>p[1]!=null);if(pts.length<2)return '';const W=180,Ht=38,x=d3.scaleLinear().domain([0,vals.length-1]).range([3,W-5]),e=d3.extent(pts,p=>p[1]),y=d3.scaleLinear().domain(e[0]===e[1]?[e[0]-1,e[1]+1]:e).range([Ht-4,4]);
   const l=d3.line().x(p=>x(p[0])).y(p=>y(p[1]))(pts),z=pts[pts.length-1];const zero=e[0]<0&&e[1]>0?'<line x1="3" x2="'+(W-5)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="#555"/>':'';

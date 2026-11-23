@@ -1,5 +1,35 @@
 [
   {
+    "date": "2026-11-23",
+    "file": "2026-11-23-anaemia.png",
+    "title": "Did India overestimate anaemia prevalence?",
+    "subtitle": "Share with anaemia (%). NFHS-5 (2019–21) measured haemoglobin in finger-prick (capillary) blood; ICMR's SAMPADA survey (2023–25) used venous blood and laboratory analysers.",
+    "caption": "Measured with the gold-standard method, anaemia is lower in every group compared, most of all among young children: 41.8% against 64% in NFHS-5. The gap varies widely, from 25 points for children to one point for women aged 15–49. ICMR cautions that the differences reflect how haemoglobin was measured and should not automatically be read as a fall over time. Either way, anaemia remains widespread: more than half of women and two in five young children.",
+    "alt": "Dumbbell chart comparing anaemia prevalence in NFHS-5 and SAMPADA. Children 12–59 months: 64% vs 41.8%, 25.2 points lower. Pregnant women: 52% vs 44%, 8 points lower. Men 15–49: 25% vs 19%, 6 points lower. Women 15–49: 57% vs 56%, 1 point lower.",
+    "source": "ICMR-NIN, SAMPADA 2023–25 fact sheets; PIB release of 23 November 2026 (SAMPADA vs NFHS-5 comparison)",
+    "interactive": {
+      "type": "dumbbell",
+      "data": "data/2026-11-23-anaemia.csv",
+      "name": "group",
+      "sub": "ages",
+      "a": [
+        "nfhs5_pct",
+        "NFHS-5, 2019–21 (finger-prick blood)",
+        "#F3E67C"
+      ],
+      "b": [
+        "sampada_pct",
+        "SAMPADA, 2023–25 (venous blood)",
+        "#F590C6"
+      ],
+      "gap": "difference_pp",
+      "gapName": "Difference",
+      "note": "note",
+      "max": 70,
+      "unit": "% of the group with anaemia; difference in percentage points"
+    }
+  },
+  {
     "date": "2026-11-20",
     "file": "2026-11-20-cpi-groups.png",
     "title": "Food pushes retail inflation above 6%",

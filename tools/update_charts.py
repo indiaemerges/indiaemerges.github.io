@@ -9,6 +9,8 @@ Optional "interactive": a spec drawn by assets/cod.js, with the image as fallbac
   Time series (default): {"data", "x", "measures", ...}
   Ranked bars: {"type": "rank", "data", "name", "value", "kind", "groups", "counts", "ref",
                 "short", "extra", "up", "down", "vname", "unit"} (see rank() in assets/cod.js)
+  Lines (no controls): {"type": "line", "data", "x", "series": [[column, name, colour, endValue, short]], "kind", "hlines"}
+  Dumbbell: {"type": "dumbbell", "data", "name", "sub", "a": [column, name, colour], "b": [...], "gap", "gapName", "note", "max"}
 
 Run: python tools/update_charts.py   (the GitHub Action runs it whenever charts/ changes)
 """

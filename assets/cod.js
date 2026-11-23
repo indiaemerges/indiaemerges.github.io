@@ -13,6 +13,7 @@ async function build(box){
   if(!rows||!rows.length)return;
   if(spec.type==='rank')return rank(box,spec,rows);
   if(spec.type==='line')return line(box,spec,rows);
+  if(spec.type==='dumbbell')return dumb(box,spec,rows);
   const L=rows.map(r=>r[spec.x]),col=c=>rows.map(r=>r[c]===''||r[c]==null?null:+r[c]);
   const st={m:0,view:'total',a:0,b:L.length-1};
   const ui=box.querySelector('.cod-ui'),plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend');
@@ -72,6 +73,17 @@ function line(box,spec,rows){
   const mN=i=>+M[i].slice(0,4)*12+(+M[i].slice(5,7)-1);
   function draw(){IE.lineChart(plot,{labels:M.map(m=>n>30?m.slice(0,4):MON[+m.slice(5,7)-1]),series:S,kind:K,unit:spec.unit,hlines:spec.hlines,endLabels:spec.endLabels!==false,label:spec.title||'Chart',
     align:mN,minStep:n>30?12:1,tickLabel:i=>n>30?M[i].slice(0,4):MON[+M[i].slice(5,7)-1],tipTitle:i=>MON[+M[i].slice(5,7)-1]+' '+M[i].slice(0,4),height:window.innerWidth<640?340:440});}
+  draw();box.classList.add('ready');
+  let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
+}
+/* Dumbbell, no controls: spec {type:'dumbbell', data, name, sub, a:[column,name,color], b:[column,name,color], gap, gapName, note, unit, max} */
+function dumb(box,spec,rows){
+  const plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend'),num=v=>v===''||v==null?null:+v;
+  const fmt=v=>v==null?'n/a':(Number.isInteger(v)?v:v.toFixed(1))+'%';
+  const R=rows.map(r=>({name:r[spec.name],sub:spec.sub?r[spec.sub]:'',a:num(r[spec.a[0]]),b:num(r[spec.b[0]]),gap:spec.gap?num(r[spec.gap]):null,extra:spec.note&&r[spec.note]?'<div class="m">'+IE.esc(r[spec.note])+'</div>':''}));
+  const A={name:spec.a[1],color:spec.a[2]},B={name:spec.b[1],color:spec.b[2]};
+  lg.innerHTML='<span><i class="sw" style="background:none;border:3px solid '+A.color+';border-radius:50%"></i>'+IE.esc(A.name)+'</span><span><i class="sw" style="background:'+B.color+';border-radius:50%"></i>'+IE.esc(B.name)+'</span>';
+  function draw(){IE.dumbbell(plot,{rows:R,A,B,fmt,gapName:spec.gapName,unit:spec.unit,max:spec.max,label:spec.title||'Chart'});}
   draw();box.classList.add('ready');
   let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
 }
