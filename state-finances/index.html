@@ -286,6 +286,7 @@ function vScatter(){
   if(pts.length<2){b.appendChild(h('p',{class:'empty',text:'Fewer than two states have both values in '+YEARS[yi]+'. Try another year or measure.'}));return;}
   IE.scatterChart(b,{pts:pts.map(p=>Object.assign(p,{name:p.s,label:ABB[p.s],size:p.g})),xkind:kx,ykind:ky,label:'Scatter of states',
     xTitle:IND[st.sx].name+' ('+(IND[st.sx].unit&&IND[st.sx].unit!=='cr'?FIXED[IND[st.sx].unit]:UNIT[st.sxu].short)+')',
+    yTitle:IND[st.sy].name+' ('+(IND[st.sy].unit&&IND[st.sy].unit!=='cr'?FIXED[IND[st.sy].unit]:UNIT[st.syu].short)+')',
     tipHtml:p=>'<div class="t">'+esc(p.s)+', '+YEARS[yi]+'</div><div class="r"><span>'+esc(IND[st.sx].name)+'</span><b>'+fmt(p.x,kx)+'</b></div><div class="r"><span>'+esc(IND[st.sy].name)+'</span><b>'+fmt(p.y,ky)+'</b></div><div class="r"><span>GSDP</span><b>'+fmt(p.g,'cr')+'</b></div>',
     onClick:p=>{st.state=p.s;save();go('profile');}});
   const n=pts.length,mx=d3.mean(pts,p=>p.x),my=d3.mean(pts,p=>p.y),sxx=d3.sum(pts,p=>(p.x-mx)**2),syy=d3.sum(pts,p=>(p.y-my)**2),sxy=d3.sum(pts,p=>(p.x-mx)*(p.y-my));

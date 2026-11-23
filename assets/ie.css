@@ -101,3 +101,8 @@ thead th:first-child{z-index:3}
 @media (max-width:900px){.maprow{grid-template-columns:1fr}}
 @media (max-width:520px){html,body{font-size:16px}.wrap{padding:0 16px 60px}.bar{margin:14px -16px 0;padding:10px 16px}.tiles{grid-template-columns:1fr 1fr;gap:10px}.tile{min-width:0;padding:12px}.tile .k{font-size:14px}.tile .v{font-size:26px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* per-chart Copy as CSV (added by the toolkit to every chart card) */
+.csvrow{display:flex;justify-content:flex-end;margin-top:10px}
+.csvrow button{font-size:14px;padding:4px 11px;opacity:.8}
+.csvrow button:hover{opacity:1}

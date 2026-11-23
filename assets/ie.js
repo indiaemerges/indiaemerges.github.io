@@ -121,7 +121,24 @@ function yAxis(svg,y,ticks,tf,m,W){const gg=svg.append('g').attr('class','gridl'
 function empty(el,msg){el.textContent='';el.appendChild(h('p',{class:'empty',text:msg||'No data for this selection.'}));}
 
 /* ---------- line chart ---------- */
+/* ---------- every chart inside a .card gets a "Copy as CSV" button that copies exactly the numbers it draws.
+   A card with data-nocsv gets none. Several charts in one card are copied one after another. ---------- */
+const cnum=v=>v==null||!isFinite(v)?null:Math.round(v*1e6)/1e6;
+const colHead=(o,first)=>(first||'Period')+(o.unit?' ('+o.unit+')':'');
+function csvOf(el,head,rows){if(!el)return;el.__csv=rows.length?{head,rows}:null;
+  const go=()=>{const card=el.closest&&el.closest('.card');if(!card)return;
+    /* a null header means "use the card's title" */
+    if(el.__csv){const t=((card.querySelector('h3')||{}).textContent||'Value').trim().replace(/^Ranking:\s*/,'');el.__csv.head=el.__csv.head.map(x=>x==null?t:x);}
+    if(card.hasAttribute('data-nocsv'))return;const had=card.querySelector(':scope>.csvrow');if(had){card.appendChild(had);return;}/* keep the button last, below any notes */
+    card.appendChild(h('div',{class:'csvrow'},[IE.copyBtn(()=>[...card.querySelectorAll('*')].map(e=>e.__csv).filter(Boolean).map(d=>IE.toCSV(d.head,d.rows)).join('\n\n'))]));};
+  setTimeout(go,0);}
+function seriesCSV(el,o,list){const L=o.labels||[];list=(list||[]).filter(Boolean);
+  const ix=[...new Set(list.flatMap(s=>(s.pts||[]).filter(p=>p[1]!=null&&isFinite(p[1])).map(p=>p[0])))].sort((a,b)=>a-b),mp=list.map(s=>new Map((s.pts||[]).map(p=>[p[0],p[1]])));
+  csvOf(el,[colHead(o)].concat(list.map(s=>s.name||'Value')),ix.map(i=>[o.tipTitle?o.tipTitle(i):L[i]].concat(mp.map(m=>cnum(m.get(i))))));}
+const vpts=vals=>(vals||[]).map((v,i)=>[i,v]);
+IE.csvOf=csvOf;
 IE.lineChart=function(el,o){
+  seriesCSV(el,o,o.series);
   const L=o.labels,series=o.series.map(s=>Object.assign({},s,{pts:s.pts.filter(p=>p[1]!=null&&isFinite(p[1]))})).filter(s=>s.pts.length);
   el.textContent='';if(!series.length)return empty(el,o.empty);
   const W=el.clientWidth||600,wide=W>640,end=wide&&o.endLabels!==false&&series.length>1,Ht=o.height||(wide?420:330);
@@ -165,6 +182,7 @@ IE.lineChart=function(el,o){
 
 /* ---------- grouped bars over time, with optional overlaid lines (used for growth rates) ---------- */
 IE.barChart=function(el,o){
+  seriesCSV(el,o,(o.series||[]).concat(o.lines||[]));
   const L=o.labels,clean=s=>Object.assign({},s,{pts:s.pts.filter(p=>p[1]!=null&&isFinite(p[1]))});
   const bars=(o.series||[]).map(clean).filter(s=>s.pts.length),lines=(o.lines||[]).map(clean).filter(s=>s.pts.length);
   el.textContent='';if(!bars.length&&!lines.length)return empty(el,o.empty);
@@ -215,6 +233,7 @@ IE.growthChart=function(host,o){
 
 /* ---------- column chart over time (one series; optional second series as a line) ---------- */
 IE.colChart=function(el,o){
+  seriesCSV(el,o,[{name:o.name||'Value',pts:vpts(o.vals)}]);
   const L=o.labels,idx=d3.range(L.length).filter(i=>o.vals[i]!=null&&isFinite(o.vals[i]));el.textContent='';if(!idx.length)return empty(el,o.empty);
   const a=idx[0],b=idx[idx.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?360:300),m={t:bandTop(o),r:10,b:34,l:50};
   const vals=idx.map(i=>o.vals[i]);const y=d3.scaleLinear().domain([Math.min(0,d3.min(vals)),Math.max(0,d3.max(vals))]).nice(5).range([Ht-m.b,m.t]);
@@ -237,6 +256,7 @@ IE.colChart=function(el,o){
    o.labels; o.bars={vals,name,pos:{name,color},neg:{name,color}} or o.stack=[{name,color,vals}];
    o.lines=[{name,color,vals,width}]; o.ticks=[candidate tick indices]; o.tickLabel(i); o.tipTitle(i); o.fmt(v) */
 IE.comboChart=function(el,o){
+  seriesCSV(el,o,(o.stack?o.stack.map(s=>({name:s.name,pts:vpts(s.vals)})):[{name:o.barName||o.totalName||'Value',pts:vpts(o.bars&&o.bars.vals)}]).concat((o.lines||[]).map(l=>({name:l.name,pts:vpts(l.vals)}))));
   const L=o.labels,n=L.length;el.textContent='';if(!n)return empty(el,o.empty);
   const W=el.clientWidth||600,Ht=o.height||(W>640?440:340),m={t:14,r:12,b:34,l:50},F=o.fmt||(v=>IE.fmt(v,o.kind));
   let lo=0,hi=0;
@@ -272,6 +292,7 @@ IE.comboChart=function(el,o){
 
 /* ---------- stacked columns over time ---------- */
 IE.stackChart=function(el,o){
+  seriesCSV(el,o,o.keys.map(k=>({name:k.name,pts:vpts(k.vals)})).concat(o.line?[{name:o.line.name||o.totalName||'Total',pts:vpts(o.line.vals)}]:[]));
   const L=o.labels;el.textContent='';const yrs=d3.range(L.length).filter(i=>o.keys.some(k=>k.vals[i]!=null));if(!yrs.length)return empty(el,o.empty);
   const a=yrs[0],b=yrs[yrs.length-1],W=el.clientWidth||600,Ht=o.height||(W>640?380:320),m={t:bandTop(o),r:8,b:34,l:50};
   const rows=d3.range(a,b+1).map(i=>{const r={i};o.keys.forEach((k,j)=>r[j]=k.vals[i]==null?0:k.vals[i]);return r;});
@@ -297,9 +318,10 @@ IE.stackChart=function(el,o){
 
 /* ---------- ranked horizontal bars ---------- */
 IE.rankBars=function(el,o){
+  {const it=(o.items||[]).filter(d=>d.v!=null&&isFinite(d.v)),ref=it.some(d=>d.ref!=null);if(!o.keep)it.sort((p,q)=>q.v-p.v);csvOf(el,[o.iname||'Name',o.vname?o.vname+(o.unit?' ('+o.unit+')':''):null].concat(ref?[o.rname||'Reference']:[]),it.map(d=>[d.full||d.name,cnum(d.v)].concat(ref?[cnum(d.ref)]:[])));}
   el.textContent='';const items=o.items.filter(d=>d.v!=null&&isFinite(d.v));if(!items.length)return empty(el,o.empty);
   if(!o.keep)items.sort((p,q)=>q.v-p.v);
-  const W=el.clientWidth||500,rh=o.rh||27,CW=8.6,lw=o.lw||Math.min(220,W*(W<520?.46:.38),d3.max(items,d=>d.name.length)*CW+16),vwOf=a=>a.length?Math.min(130,d3.max(a,d=>IE.fmt(d.v,o.kind).length)*8.8+10):0,vwN=vwOf(items.filter(d=>d.v<0)),vw=Math.max(vwOf(items.filter(d=>d.v>=0)),vwN?0:24);
+  const W=el.clientWidth||500,rh=o.rh||27,CW=8.6,lw=o.lw||Math.min(220,W*(W<520?.5:.38),d3.max(items,d=>d.name.length)*CW+16),vwOf=a=>a.length?Math.min(130,d3.max(a,d=>IE.fmt(d.v,o.kind).length)*8.8+10):0,vwN=vwOf(items.filter(d=>d.v<0)),vw=Math.max(vwOf(items.filter(d=>d.v>=0)),vwN?0:24);
   const Ht=items.length*rh+8,ext=[Math.min(0,d3.min(items,d=>Math.min(d.v,d.ref==null?d.v:d.ref))),Math.max(0,d3.max(items,d=>Math.max(d.v,d.ref==null?d.v:d.ref)))];
   const neg=ext[0]<0,x=d3.scaleLinear().domain(ext).range([lw+(neg?vwN:0),W-vw]);
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Ranked bars');
@@ -337,6 +359,7 @@ IE.scaleLegend=function(c,kind,noData){const d=h('div',{class:'legend'});const F
 
 /* ---------- scatter (bubbles sized by o.pts[].size, labelled by .label) ---------- */
 IE.scatterChart=function(el,o){
+  csvOf(el,['Name',o.xTitle||o.xname||'x',o.yTitle||o.yname||'y'],(o.pts||[]).filter(p=>p.x!=null&&p.y!=null&&isFinite(p.x)&&isFinite(p.y)).map(p=>[p.full||p.name||p.label||'',cnum(p.x),cnum(p.y)]));
   el.textContent='';const pts=o.pts.filter(p=>p.x!=null&&p.y!=null&&isFinite(p.x)&&isFinite(p.y));if(pts.length<2)return empty(el,o.empty);
   const W=el.clientWidth||700,Ht=o.height||Math.min(640,Math.max(380,W*.62)),m={t:20,r:26,b:56,l:70},col=o.color||IE.PAL[0];
   const pad=e=>{const d=(e[1]-e[0])||1;return [e[0]-d*.06,e[1]+d*.08];};
@@ -371,6 +394,7 @@ IE.fmtShort=function(v,kind){if(v==null||!isFinite(v))return '';const a=Math.abs
 const CALLOUT={'Goa':[-.075,.012],'Kerala':[-.075,.03],'Puducherry':[.075,0],'Sikkim':[0,-.05],'Tripura':[-.045,.06],'Mizoram':[.055,.045],'Manipur':[.065,.01],
   'Nagaland':[.065,-.025],'Meghalaya':[-.035,.05],'NCT Delhi':[-.075,.012],'Andaman and Nicobar Islands':[-.06,0],'Dadra and Nagar Haveli and Daman and Diu':[-.07,-.01],'Lakshadweep':[.04,0]};
 IE.mapChart=function(el,o){
+  csvOf(el,['State',o.title?o.title+(o.unit?' ('+o.unit+')':''):null],Object.keys(o.values||{}).filter(k=>o.values[k]!=null&&isFinite(o.values[k])).sort().map(k=>[k,cnum(o.values[k])]));
   el.textContent='';const FEAT=topojson.feature(window.GEO,window.GEO.objects.states).features;
   const W=el.clientWidth||520,Ht=Math.min(680,W*1.08),proj=d3.geoMercator().fitExtent([[4,4],[W-4,Ht-4]],{type:'FeatureCollection',features:FEAT}),path=d3.geoPath(proj);
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Map of India by state');

@@ -60,7 +60,11 @@ All time charts take `labels` (one per period), points as `[index, value]`, `kin
 | `IE.classer(values, div)` | Map colour classes: sequential quantiles, or diverging around zero (`{pool}` fixes the bands across years). `IE.scaleLegend` draws its key. |
 | `IE.spark(vals)` | Small trend line for tiles. |
 
-Number kinds for `IE.fmt` and axes: `pct`, `pct2` (two decimals below 10%), `pp`, `cr` (₹ crore, lakh crore), `rs` (₹), `num` and `pop` (lakh, crore), `idx`, `x`.
+**Copy as CSV on every chart.** Every chart above, drawn inside a `.card`, adds a *Copy as CSV* button at the bottom of that card. The button copies exactly the numbers the chart draws, with periods labelled as in the tooltip (`tipTitle`) and the unit in the header. A card with two charts copies both, one after the other. A `null` header falls back to the card's title. To leave a card without the button, give it `data-nocsv`. Charts outside a card (the chart of the day) get no button. For your own drawing code, call `IE.csvOf(el, head, rows)` to join in.
+
+`lineChart` also takes `hlines: [{v, label, short}]` (dashed reference lines whose labels avoid the data) and per-series `endValue` (prints the latest value above the line's last point).
+
+Number kinds for `IE.fmt` and axes: `pct`, `pct2` (two decimals below 10%), `pctx` (always two decimals), `pp`, `cr` (₹ crore, lakh crore), `rs` (₹), `num` and `pop` (lakh, crore), `idx`, `x`.
 
 ## Controls and helpers
 
