@@ -1,0 +1,217 @@
+[
+  {
+    "date": "2026-11-24",
+    "file": "2026-11-24-rd-units-by-state.png",
+    "title": "Only 2 in 100 Indian factories have an R&D unit",
+    "subtitle": "Factories with an in-house R&D unit, by state, 2024-25. Switch between the number of factories and their share of all factories in the state.",
+    "caption": "Of 2,18,543 factories in India in 2024-25, 4,146 (1.9%) had an in-house R&D unit. Maharashtra had the most, 749, followed by Tamil Nadu (634) and Gujarat (593). As a share, Himachal Pradesh (3.54%), Maharashtra (3.41%) and Puducherry (3.31%) lead, leaving aside the Andaman and Nicobar Islands, where 1 of 12 factories has one. In Bihar, Chhattisgarh and Assam, fewer than 1 in 100 factories do.",
+    "alt": "Map of India showing factories with R&D units by state in 2024-25, by number and as a share of all factories. Maharashtra has the most, 749 (3.41%); Tamil Nadu 634 (1.95%); Gujarat 593 (2.28%); Karnataka 387 (3.06%); Telangana 329 (2.89%). Nationally 1.9% of factories have an R&D unit.",
+    "source": "MoSPI, Annual Survey of Industries 2024-25 (R&D block)",
+    "interactive": {
+      "type": "map",
+      "data": "data/2026-11-24-rd-units-by-state.csv",
+      "state": "state",
+      "measures": [
+        {
+          "col": "factories_with_rd_unit",
+          "label": "Number",
+          "kind": "num",
+          "unit": "Factories with an R&D unit, 2024-25",
+          "breaks": [
+            10,
+            50,
+            100,
+            250,
+            500
+          ]
+        },
+        {
+          "col": "pct_factories_with_rd_unit",
+          "label": "Share of factories",
+          "kind": "pct2",
+          "unit": "% of the state's factories with an R&D unit, 2024-25",
+          "breaks": [
+            0.5,
+            1,
+            2,
+            3
+          ]
+        }
+      ],
+      "tip": [
+        [
+          "factories_with_rd_unit",
+          "Factories with an R&D unit",
+          "num"
+        ],
+        [
+          "factories",
+          "All factories",
+          "num"
+        ],
+        [
+          "pct_factories_with_rd_unit",
+          "Share with an R&D unit",
+          "pct2"
+        ]
+      ]
+    }
+  },
+  {
+    "date": "2026-11-23",
+    "file": "2026-11-23-anaemia.png",
+    "title": "Did India overestimate anaemia prevalence?",
+    "subtitle": "Share with anaemia (%). NFHS-5 (2019–21) measured haemoglobin in finger-prick (capillary) blood; ICMR's SAMPADA survey (2023–25) used venous blood and laboratory analysers.",
+    "caption": "Measured with the gold-standard method, anaemia is lower in every group compared, most of all among young children: 41.8% against 64% in NFHS-5. The gap varies widely, from 25 points for children to one point for women aged 15–49. ICMR cautions that the differences reflect how haemoglobin was measured and should not automatically be read as a fall over time. Either way, anaemia remains widespread: more than half of women and two in five young children.",
+    "alt": "Dumbbell chart comparing anaemia prevalence in NFHS-5 and SAMPADA. Children 12–59 months: 64% vs 41.8%, 25.2 points lower. Pregnant women: 52% vs 44%, 8 points lower. Men 15–49: 25% vs 19%, 6 points lower. Women 15–49: 57% vs 56%, 1 point lower.",
+    "source": "ICMR-NIN, SAMPADA 2023–25 fact sheets; PIB release of 23 November 2026 (SAMPADA vs NFHS-5 comparison)",
+    "interactive": {
+      "type": "dumbbell",
+      "data": "data/2026-11-23-anaemia.csv",
+      "name": "group",
+      "sub": "ages",
+      "a": [
+        "nfhs5_pct",
+        "NFHS-5, 2019–21 (finger-prick blood)",
+        "#F3E67C"
+      ],
+      "b": [
+        "sampada_pct",
+        "SAMPADA, 2023–25 (venous blood)",
+        "#F590C6"
+      ],
+      "gap": "difference_pp",
+      "gapName": "Difference",
+      "note": "note",
+      "max": 70,
+      "unit": "% of the group with anaemia; difference in percentage points"
+    }
+  },
+  {
+    "date": "2026-11-20",
+    "file": "2026-11-20-cpi-groups.png",
+    "title": "Food pushes retail inflation above 6%",
+    "subtitle": "Consumer price inflation by group, all India, % change on a year earlier, January to October 2026. CPI base 2024=100.",
+    "caption": "Inflation has risen every month this year, from 2.74% in January to 6.09% in October, above the RBI's 6% upper limit. Food and beverage inflation quadrupled, from 2.11% to 8.51%. Restaurant and hotel prices rose 10.06% on a year earlier and transport 5.84%, after being flat until April. Housing and fuel stayed below 3%.",
+    "alt": "Line chart of CPI inflation from January to October 2026 for all items and four groups. All items rises from 2.74% to 6.09%; food and beverages from 2.11% to 8.51%; restaurants and accommodation from 2.87% to 10.06%; transport from 0.09% to 5.84%; housing, water, electricity, gas and other fuels from 1.47% to 2.90%.",
+    "source": "MoSPI Consumer Price Index (base 2024=100), all India, rural and urban combined, October 2026 provisional",
+    "interactive": {
+      "type": "line",
+      "data": "data/2026-11-20-cpi-groups.csv",
+      "x": "month",
+      "kind": "pctx",
+      "series": [
+        [
+          "all_items",
+          "All items",
+          "#FFFFFF",
+          false,
+          "All items"
+        ],
+        [
+          "restaurants_accommodation",
+          "Restaurants and accommodation",
+          "#F3E67C",
+          false,
+          "Restaurants"
+        ],
+        [
+          "food_and_beverages",
+          "Food and beverages",
+          "#F590C6",
+          false,
+          "Food"
+        ],
+        [
+          "transport",
+          "Transport",
+          "#6FD3EA",
+          false,
+          "Transport"
+        ],
+        [
+          "housing_fuel",
+          "Housing, water, electricity and fuel",
+          "#A99AF5",
+          false,
+          "Housing, fuel"
+        ]
+      ],
+      "hlines": [
+        {
+          "v": 6,
+          "label": "RBI's 6% upper limit",
+          "short": "6% limit"
+        }
+      ],
+      "unit": "% change on the same month a year earlier"
+    }
+  },
+  {
+    "date": "2026-11-19",
+    "file": "2026-11-19-net-fpi.png",
+    "title": "Daily net FPI investment in India, March to November 2026",
+    "caption": "Foreign portfolio investors pulled money out of India through March and April, turned buyers from late June, sold again from late September into October, and have bought heavily since the start of November.",
+    "alt": "Bar chart of daily net foreign portfolio investment in India from March to November 2026 in US dollars, with a five-day moving average. Outflows dominate March, April and October; inflows dominate July and November.",
+    "source": "NSDL FPI Monitor, daily trends in FPI investments, data to 18 November 2026",
+    "subtitle": "All asset classes (equity, debt, hybrid, mutual funds, AIFs), by NSDL reporting date. US dollar figures are NSDL's, converted at the RBI reference rate for each day.",
+    "interactive": {
+      "data": "data/2026-11-19-net-fpi.csv",
+      "x": "date",
+      "measures": [
+        {
+          "label": "US$ billion",
+          "unit": "US$ billion",
+          "bar": "net_usd_bn",
+          "line": "ma5_usd_bn",
+          "prefix": "US$",
+          "suffix": " bn",
+          "dec": 2,
+          "stack": [
+            [
+              "equity_usd_bn",
+              "Equity"
+            ],
+            [
+              "debt_usd_bn",
+              "Debt"
+            ],
+            [
+              "hybrid_usd_bn",
+              "Hybrid"
+            ],
+            [
+              "mutual_funds_usd_bn",
+              "Mutual funds"
+            ],
+            [
+              "aifs_usd_bn",
+              "AIFs"
+            ]
+          ]
+        },
+        {
+          "label": "₹ crore",
+          "unit": "₹ crore",
+          "bar": "net_cr",
+          "line": "ma5_cr",
+          "prefix": "₹",
+          "suffix": " cr",
+          "dec": 0
+        }
+      ],
+      "pos": "Net inflow",
+      "neg": "Net outflow",
+      "line_name": "5-trading-day moving average",
+      "stack_name": "By asset class",
+      "total_name": "Total, all asset classes",
+      "extra": [
+        [
+          "usd_inr",
+          "₹ per US$ (RBI reference rate)",
+          4
+        ]
+      ]
+    }
+  }
+]
