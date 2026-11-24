@@ -346,7 +346,7 @@ IE.dumbbell=function(el,o){
   el.textContent='';if(!rows.length)return empty(el,o.empty);
   const F=o.fmt||(v=>IE.fmt(v,o.kind||'pct')),G=o.gapFmt||(v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+' pp');
   const W=el.clientWidth||600,narrow=W<560,lw=narrow?0:Math.min(250,W*.3),gw=narrow?0:110,rh=narrow?92:70,top=8,axh=34,Ht=top+rows.length*rh+axh;
-  const mx=o.max||d3.max(rows,r=>Math.max(r.a,r.b))*1.08,x=d3.scaleLinear().domain([0,mx]);if(!o.max)x.nice(4);x.range([lw+(narrow?22:18),W-gw-(narrow?48:62)]);
+  const mx=o.max||d3.max(rows,r=>Math.max(r.a,r.b))*1.08,x=d3.scaleLinear().domain([0,mx]);if(!o.max)x.nice(4);x.range([lw+(narrow?48:70),W-gw-(narrow?48:62)]);
   const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Dumbbell chart');
   const g=svg.append('g').attr('class','gridl');x.ticks(4).forEach(t=>g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',top).attr('y2',Ht-axh+4));
   const ax=svg.append('g').attr('class','axis');x.ticks(4).forEach(t=>ax.append('text').attr('x',x(t)).attr('y',Ht-axh+26).attr('text-anchor','middle').text(IE.tickFmt(o.kind||'pct',mx,25)(t)));
@@ -377,11 +377,12 @@ IE.spark=function(vals){const pts=vals.map((v,i)=>[i,v]).filter(p=>p[1]!=null);i
 
 /* ---------- map colour classes: sequential (one hue) or diverging (cyan below zero, pink above) ---------- */
 const SEQ=['#12333b','#1d5562','#2f7b8c','#4ea3b6','#7fcfe2','#c4f1fb'],DIVC=['#c4f1fb','#63b8cb','#28606c','#6e2f55','#c56a9f','#fbc4e3'];
-IE.classer=function(values,div){
+IE.classer=function(values,div,breaks){
   const v=values.filter(x=>x!=null&&isFinite(x)).sort(d3.ascending);if(!v.length)return null;
   if(div){const ab=(div.pool||v).map(Math.abs).filter(x=>x>0).sort(d3.ascending);let b1=d3.quantile(ab,.4)||1,b2=d3.quantile(ab,.8)||2;if(b2<=b1)b2=b1*2;
     const th=[-b2,-b1,0,b1,b2];return {th,cols:DIVC,div:true,f:x=>x===0?'#5a5a5a':DIVC[d3.bisectRight(th,x)]};}
-  const th=[1,2,3,4,5].map(k=>d3.quantile(v,k/6));const u=th.filter((t,i)=>i===0||t>th[i-1]);const cols=SEQ.slice(SEQ.length-(u.length+1));
+  /* fixed breaks if given; otherwise sextiles. A threshold at or below the smallest value would leave an empty bottom class, so drop it */
+  const th=breaks||[1,2,3,4,5].map(k=>d3.quantile(v,k/6));const u=breaks?breaks.slice():th.filter((t,i)=>(i===0||t>th[i-1])&&t>v[0]);const cols=SEQ.slice(SEQ.length-(u.length+1));
   return {th:u,cols,f:x=>cols[d3.bisectRight(u,x)]};
 };
 IE.scaleLegend=function(c,kind,noData){const d=h('div',{class:'legend'});const F=v=>IE.fmt(v,kind);

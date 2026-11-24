@@ -14,6 +14,7 @@ async function build(box){
   if(spec.type==='rank')return rank(box,spec,rows);
   if(spec.type==='line')return line(box,spec,rows);
   if(spec.type==='dumbbell')return dumb(box,spec,rows);
+  if(spec.type==='map')return map(box,spec,rows);
   const L=rows.map(r=>r[spec.x]),col=c=>rows.map(r=>r[c]===''||r[c]==null?null:+r[c]);
   const st={m:0,view:'total',a:0,b:L.length-1};
   const ui=box.querySelector('.cod-ui'),plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend');
@@ -79,12 +80,29 @@ function line(box,spec,rows){
 /* Dumbbell, no controls: spec {type:'dumbbell', data, name, sub, a:[column,name,color], b:[column,name,color], gap, gapName, note, unit, max} */
 function dumb(box,spec,rows){
   const plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend'),num=v=>v===''||v==null?null:+v;
-  const fmt=v=>v==null?'n/a':(Number.isInteger(v)?v:v.toFixed(1))+'%';
+  const fmt=v=>v==null?'n/a':(spec.dec!=null?v.toFixed(spec.dec):Number.isInteger(v)?v:v.toFixed(1))+'%';
   const R=rows.map(r=>({name:r[spec.name],sub:spec.sub?r[spec.sub]:'',a:num(r[spec.a[0]]),b:num(r[spec.b[0]]),gap:spec.gap?num(r[spec.gap]):null,extra:spec.note&&r[spec.note]?'<div class="m">'+IE.esc(r[spec.note])+'</div>':''}));
   const A={name:spec.a[1],color:spec.a[2]},B={name:spec.b[1],color:spec.b[2]};
   lg.innerHTML='<span><i class="sw" style="background:none;border:3px solid '+A.color+';border-radius:50%"></i>'+IE.esc(A.name)+'</span><span><i class="sw" style="background:'+B.color+';border-radius:50%"></i>'+IE.esc(B.name)+'</span>';
   function draw(){IE.dumbbell(plot,{rows:R,A,B,fmt,gapName:spec.gapName,unit:spec.unit,max:spec.max,label:spec.title||'Chart'});}
   draw();box.classList.add('ready');
+  let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
+}
+/* State map with a toggle between measures: spec {type:'map', data, state, measures:[{col,label,kind,unit}], tip:[[column,label,kind]]}.
+   Loads topojson and the India outline only when a map chart is shown. */
+const once={};function script(src){return once[src]||(once[src]=new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);}));}
+async function map(box,spec,rows){
+  try{if(!window.topojson)await script('https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js');if(!window.GEO)await script('/assets/india-geo.js');}catch(e){return;}
+  const ui=box.querySelector('.cod-ui'),plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend'),h=IE.h,st={m:0};
+  const byState={};rows.forEach(r=>byState[r[spec.state]]=r);
+  const num=v=>v===''||v==null?null:+v;
+  function controls(){ui.textContent='';if(spec.measures.length>1)ui.appendChild(h('div',{class:'ctl'},[h('span',{class:'lab',text:'Show'}),IE.seg(spec.measures.map((m,k)=>[k,m.label]),st.m,v=>{st.m=v;controls();draw();})]));}
+  function draw(){const M=spec.measures[st.m],values={};rows.forEach(r=>{const v=num(r[M.col]);if(v!=null)values[r[spec.state]]=v;});
+    const cl=IE.classer(Object.values(values),null,M.breaks);lg.textContent='';lg.appendChild(IE.scaleLegend(cl,M.kind));
+    IE.mapChart(plot,{values,cl,kind:M.kind,title:M.label,unit:M.unit,label:(spec.title||'Map')+': '+M.label,
+      tipHtml:(geo,n)=>{const r=byState[n];if(!r)return '<div class="t">'+IE.esc(geo)+'</div><div class="m">No data</div>';
+        return '<div class="t">'+IE.esc(geo)+'</div>'+(spec.tip||[]).map(t=>'<div class="r"><span>'+IE.esc(t[1])+'</span><b>'+IE.fmt(num(r[t[0]]),t[2])+'</b></div>').join('')+(M.unit?'<div class="m">'+IE.esc(M.unit)+'</div>':'');}});}
+  controls();draw();box.classList.add('ready');
   let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
 }
 function init(){if(!window.IE||!window.d3)return;if(!document.getElementById('tip'))document.body.appendChild(IE.h('div',{id:'tip',role:'status'}));document.querySelectorAll('.cod-int[data-spec]').forEach(build);}
