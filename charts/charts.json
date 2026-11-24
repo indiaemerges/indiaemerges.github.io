@@ -1,5 +1,63 @@
 [
   {
+    "date": "2026-11-24",
+    "file": "2026-11-24-rd-units-by-state.png",
+    "title": "Only 2 in 100 Indian factories have an R&D unit",
+    "subtitle": "Factories with an in-house R&D unit, by state, 2024-25. Switch between the number of factories and their share of all factories in the state.",
+    "caption": "Of 2,18,543 factories in India in 2024-25, 4,146 (1.9%) had an in-house R&D unit. Maharashtra had the most, 749, followed by Tamil Nadu (634) and Gujarat (593). As a share, Himachal Pradesh (3.54%), Maharashtra (3.41%) and Puducherry (3.31%) lead, leaving aside the Andaman and Nicobar Islands, where 1 of 12 factories has one. In Bihar, Chhattisgarh and Assam, fewer than 1 in 100 factories do.",
+    "alt": "Map of India showing factories with R&D units by state in 2024-25, by number and as a share of all factories. Maharashtra has the most, 749 (3.41%); Tamil Nadu 634 (1.95%); Gujarat 593 (2.28%); Karnataka 387 (3.06%); Telangana 329 (2.89%). Nationally 1.9% of factories have an R&D unit.",
+    "source": "MoSPI, Annual Survey of Industries 2024-25 (R&D block)",
+    "interactive": {
+      "type": "map",
+      "data": "data/2026-11-24-rd-units-by-state.csv",
+      "state": "state",
+      "measures": [
+        {
+          "col": "factories_with_rd_unit",
+          "label": "Number",
+          "kind": "num",
+          "unit": "Factories with an R&D unit, 2024-25",
+          "breaks": [
+            10,
+            50,
+            100,
+            250,
+            500
+          ]
+        },
+        {
+          "col": "pct_factories_with_rd_unit",
+          "label": "Share of factories",
+          "kind": "pct2",
+          "unit": "% of the state's factories with an R&D unit, 2024-25",
+          "breaks": [
+            0.5,
+            1,
+            2,
+            3
+          ]
+        }
+      ],
+      "tip": [
+        [
+          "factories_with_rd_unit",
+          "Factories with an R&D unit",
+          "num"
+        ],
+        [
+          "factories",
+          "All factories",
+          "num"
+        ],
+        [
+          "pct_factories_with_rd_unit",
+          "Share with an R&D unit",
+          "pct2"
+        ]
+      ]
+    }
+  },
+  {
     "date": "2026-11-23",
     "file": "2026-11-23-anaemia.png",
     "title": "Did India overestimate anaemia prevalence?",
