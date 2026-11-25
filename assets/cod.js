@@ -81,7 +81,7 @@ function line(box,spec,rows){
 function dumb(box,spec,rows){
   const plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend'),num=v=>v===''||v==null?null:+v;
   const fmt=v=>v==null?'n/a':(spec.dec!=null?v.toFixed(spec.dec):Number.isInteger(v)?v:v.toFixed(1))+'%';
-  const R=rows.map(r=>({name:r[spec.name],sub:spec.sub?r[spec.sub]:'',a:num(r[spec.a[0]]),b:num(r[spec.b[0]]),gap:spec.gap?num(r[spec.gap]):null,extra:spec.note&&r[spec.note]?'<div class="m">'+IE.esc(r[spec.note])+'</div>':''}));
+  const R=rows.map(r=>({name:r[spec.name],sub:spec.sub?r[spec.sub]:'',a:num(r[spec.a[0]]),b:num(r[spec.b[0]]),gap:spec.gap?num(r[spec.gap]):null,noGap:!!spec.gap&&(r[spec.gap]===''||r[spec.gap]==null),extra:spec.note&&r[spec.note]?'<div class="m">'+IE.esc(r[spec.note])+'</div>':''}));
   const A={name:spec.a[1],color:spec.a[2]},B={name:spec.b[1],color:spec.b[2]};
   lg.innerHTML='<span><i class="sw" style="background:none;border:3px solid '+A.color+';border-radius:50%"></i>'+IE.esc(A.name)+'</span><span><i class="sw" style="background:'+B.color+';border-radius:50%"></i>'+IE.esc(B.name)+'</span>';
   function draw(){IE.dumbbell(plot,{rows:R,A,B,fmt,gapName:spec.gapName,unit:spec.unit,max:spec.max,label:spec.title||'Chart'});}

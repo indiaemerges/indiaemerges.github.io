@@ -1,5 +1,35 @@
 [
   {
+    "date": "2026-11-25",
+    "file": "2026-11-25-us-tariffs.png",
+    "title": "A trade deal would cut India's proposed US tariff from 25% to 17%",
+    "subtitle": "New US tariffs proposed on 25 November 2026 under Section 301 (excess manufacturing capacity), % on all goods. A second rate is offered to India, Vietnam and Singapore if they reach a trade agreement; the other economies face one rate.",
+    "caption": "Without a deal, India's proposed rate of 25% is the second highest after Vietnam's 35%. With one, India's 17% would be a point below the 18% proposed for Bangladesh, Cambodia, Indonesia, Malaysia and Thailand, and three below Vietnam and China at 20%, though above the 15% for the EU, Japan, Korea, Switzerland and Taiwan. The rates are proposals: hearings begin on 25 January 2027.",
+    "alt": "Chart of proposed US Section 301 tariff rates, without and with a trade agreement. Vietnam 35% or 20%. India 25% or 17%. Singapore 20% or 10%. China 20%. Bangladesh, Cambodia, Indonesia, Malaysia and Thailand 18%. EU, Japan, Korea, Switzerland and Taiwan 15%.",
+    "source": "Office of the US Trade Representative, Section 301 determinations on structural excess capacity, 25 November 2026",
+    "interactive": {
+      "type": "dumbbell",
+      "data": "data/2026-11-25-us-tariffs.csv",
+      "name": "economy",
+      "sub": "members",
+      "a": [
+        "rate_without_deal_pct",
+        "Proposed rate, no agreement",
+        "#F590C6"
+      ],
+      "b": [
+        "rate_with_deal_pct",
+        "Rate with a trade agreement",
+        "#6FD3EA"
+      ],
+      "gap": "deal_difference_pp",
+      "gapName": "With a deal",
+      "note": "note",
+      "max": 40,
+      "unit": "Proposed additional tariff, % on all goods"
+    }
+  },
+  {
     "date": "2026-11-24",
     "file": "2026-11-24-rd-units-by-state.png",
     "title": "Only 2 in 100 Indian factories have an R&D unit",
