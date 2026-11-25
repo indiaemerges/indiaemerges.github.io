@@ -3,9 +3,9 @@
     "date": "2026-11-25",
     "file": "2026-11-25-us-tariffs.png",
     "title": "A trade deal would cut India's proposed US tariff from 25% to 17%",
-    "subtitle": "New US tariffs proposed on 25 November 2026 under Section 301 (excess manufacturing capacity), % on all goods. A second rate is offered to India, Vietnam and Singapore if they reach a trade agreement; the other economies face one rate.",
-    "caption": "Without a deal, India's proposed rate of 25% is the second highest after Vietnam's 35%. With one, India's 17% would be a point below the 18% proposed for Bangladesh, Cambodia, Indonesia, Malaysia and Thailand, and three below Vietnam and China at 20%, though above the 15% for the EU, Japan, Korea, Switzerland and Taiwan. The rates are proposals: hearings begin on 25 January 2027.",
-    "alt": "Chart of proposed US Section 301 tariff rates, without and with a trade agreement. Vietnam 35% or 20%. India 25% or 17%. Singapore 20% or 10%. China 20%. Bangladesh, Cambodia, Indonesia, Malaysia and Thailand 18%. EU, Japan, Korea, Switzerland and Taiwan 15%.",
+    "subtitle": "New US tariffs proposed on 25 November 2026 under Section 301 (excess manufacturing capacity), % on all goods. A second rate is offered to India, Vietnam and Singapore if they reach a trade agreement. China's rate comes on top of its existing 2018 tariffs.",
+    "caption": "Without a deal, India's proposed rate of 25% is the second highest after Vietnam's 35%. With one, India's 17% would be a point below the 18% proposed for Bangladesh, Cambodia, Indonesia, Malaysia and Thailand, and three below Vietnam at 20%, though above the 15% for the EU, Japan, Korea, Switzerland and Taiwan. China's 20% is added to the 25% or 7.5% tariffs it has paid on most goods since 2018, taking the total on those goods to 45% or 27.5%. The rates are proposals: hearings begin on 25 January 2027.",
+    "alt": "Chart of proposed US Section 301 tariff rates, without and with a trade agreement. Vietnam 35% or 20%. India 25% or 17%. Singapore 20% or 10%. China 20%, on top of existing 2018 tariffs of 25% or 7.5% on most goods. Bangladesh, Cambodia, Indonesia, Malaysia and Thailand 18%. EU, Japan, Korea, Switzerland and Taiwan 15%.",
     "source": "Office of the US Trade Representative, Section 301 determinations on structural excess capacity, 25 November 2026",
     "interactive": {
       "type": "dumbbell",
