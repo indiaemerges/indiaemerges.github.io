@@ -61,6 +61,8 @@ All time charts take `labels` (one per period), points as `[index, value]`, `kin
 | `IE.dumbbell(el, {rows, A, B, fmt, gapName})` | Two values per row joined by a line (A a ring, B a filled dot) with the difference at the right; on phones the difference moves onto the name line. For before-and-after or survey-vs-survey comparisons. |
 | `IE.spark(vals)` | Small trend line for tiles. |
 
+**Watermark on every chart.** Every chart draws a faint `indiaemerges.com` behind its data (maps: small, in the empty top-right corner), so screenshots carry the source. Pass `watermark: false` in a chart's options to leave it off.
+
 **Copy as CSV on every chart.** Every chart above, drawn inside a `.card`, adds a *Copy as CSV* button at the bottom of that card. The button copies exactly the numbers the chart draws, with periods labelled as in the tooltip (`tipTitle`) and the unit in the header. A card with two charts copies both, one after the other. A `null` header falls back to the card's title. To leave a card without the button, give it `data-nocsv`. Charts outside a card (the chart of the day) get no button. For your own drawing code, call `IE.csvOf(el, head, rows)` to join in.
 
 `lineChart` also takes `hlines: [{v, label, short}]` (dashed reference lines whose labels avoid the data) and per-series `endValue` (prints the latest value above the line's last point).

@@ -121,6 +121,14 @@ function yAxis(svg,y,ticks,tf,m,W){const gg=svg.append('g').attr('class','gridl'
 function empty(el,msg){el.textContent='';el.appendChild(h('p',{class:'empty',text:msg||'No data for this selection.'}));}
 
 /* ---------- line chart ---------- */
+/* ---------- watermark: a faint "indiaemerges.com" behind every chart, so screenshots and shares carry the source.
+   Drawn first, so the data sits on top of it; never catches the pointer. Maps put it small in the empty top-right corner (over China/Tibet), where no state or callout sits. ---------- */
+function watermark(svg,o,corner){if(o&&o.watermark===false)return;const W=+svg.attr('width'),Ht=+svg.attr('height');if(!W||!Ht)return;
+  const t=svg.append('text').attr('class','wm').attr('aria-hidden','true').style('pointer-events','none').style('font-family','"IBM Plex Sans Condensed",sans-serif').attr('font-weight',600).text('indiaemerges.com');
+  if(corner){const fs=Math.max(13,Math.min(18,W/30));t.attr('x',W-6).attr('y',fs+4).attr('text-anchor','end').style('font-size',fs+'px').style('fill','rgba(255,255,255,.45)');}
+  else{const fs=Math.max(16,Math.min(44,W/14));t.attr('x',W/2).attr('y',Ht/2).attr('dy','.35em').attr('text-anchor','middle').style('font-size',fs+'px').style('fill','rgba(255,255,255,.085)');}}
+IE.watermark=watermark;
+
 /* ---------- every chart inside a .card gets a "Copy as CSV" button that copies exactly the numbers it draws.
    A card with data-nocsv gets none. Several charts in one card are copied one after another. ---------- */
 const cnum=v=>v==null||!isFinite(v)?null:Math.round(v*1e6)/1e6;
@@ -148,7 +156,7 @@ IE.lineChart=function(el,o){
   const y=d3.scaleLinear().domain([lo,hi]).nice(6).range([Ht-m.b,m.t]);const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])),ticks.length>1?ticks[1]-ticks[0]:null);
   m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleLinear().domain([a,b]).range([m.l+8,W-m.r-8]);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Line chart');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Line chart');watermark(svg,o,false);
   yAxis(svg,y,ticks,tf,m,W);
   const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r-16,o.align,o.minStep,o.steps).forEach(i=>xa.append('text').attr('x',x(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
   edgeFix(xa,W);
@@ -192,7 +200,7 @@ IE.barChart=function(el,o){
   const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])),ticks.length>1?ticks[1]-ticks[0]:null);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(bars.length>1?.22:.18),xc=i=>x(i)+x.bandwidth()/2;
   const xi=d3.scaleBand().domain(d3.range(Math.max(1,bars.length))).range([0,x.bandwidth()]).paddingInner(bars.length>1?.08:0);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Bar chart');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Bar chart');watermark(svg,o,false);
   yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step(),a,b);
   const bw=Math.max(1,xi.bandwidth()),rx=Math.min(2,bw/3);
   bars.forEach((s,k)=>svg.append('g').selectAll('rect').data(s.pts).join('rect').attr('x',p=>x(p[0])+xi(k)).attr('width',bw)
@@ -239,7 +247,7 @@ IE.colChart=function(el,o){
   const vals=idx.map(i=>o.vals[i]);const y=d3.scaleLinear().domain([Math.min(0,d3.min(vals)),Math.max(0,d3.max(vals))]).nice(5).range([Ht-m.b,m.t]);
   const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])),ticks.length>1?ticks[1]-ticks[0]:null);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.18),xc=i=>x(i)+x.bandwidth()/2;
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Column chart');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Column chart');watermark(svg,o,false);
   yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step(),a,b);
   svg.append('g').selectAll('rect').data(idx).join('rect').attr('x',i=>x(i)).attr('width',Math.max(1,x.bandwidth())).attr('y',i=>Math.min(y(0),y(o.vals[i]))).attr('height',i=>Math.max(1,Math.abs(y(o.vals[i])-y(0)))).attr('rx',Math.min(2,x.bandwidth()/3)).attr('fill',o.color||IE.PAL[0]);
   const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep,o.steps).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
@@ -266,7 +274,7 @@ IE.comboChart=function(el,o){
   const y=d3.scaleLinear().domain([lo,hi||1]).nice(6).range([Ht-m.b,m.t]),ticks=y.ticks(6);
   const tf=o.tickFmt||IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));m.l=Math.max(40,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(n)).range([m.l,W-m.r]).paddingInner(n>120?.15:.22),xc=i=>x(i)+x.bandwidth()/2,bw=Math.max(1,x.bandwidth());
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Chart');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Chart');watermark(svg,o,false);
   yAxis(svg,y,ticks,tf,m,W);
   const g=svg.append('g');
   if(o.stack){for(let i=0;i<n;i++){let p=0,q=0;o.stack.forEach(s=>{const v=s.vals[i];if(!v)return;const a=v>0?p:q,b=a+v;if(v>0)p=b;else q=b;
@@ -300,7 +308,7 @@ IE.stackChart=function(el,o){
   const lv=o.line?d3.range(a,b+1).map(i=>o.line.vals[i]).filter(v=>v!=null):[];const y=d3.scaleLinear().domain([Math.min(0,d3.min(stk,s=>d3.min(s,d=>d[0])),d3.min(lv)??0),Math.max(d3.max(stk,s=>d3.max(s,d=>d[1]))||1,d3.max(lv)??0)]).nice(5).range([Ht-m.b,m.t]);if(o.max!=null&&y.domain()[1]>o.max)y.domain([y.domain()[0],o.max]);
   const ticks=y.ticks(5),tf=IE.tickFmt(o.kind,y.domain()[1],ticks.length>1?ticks[1]-ticks[0]:null);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(.14),xc=i=>x(i)+x.bandwidth()/2;
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Stacked columns');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Stacked columns');watermark(svg,o,false);
   yAxis(svg,y,ticks,tf,m,W);bands(svg.append('g'),xc,m.t,Ht-m.b,o.bands,x.step(),a,b);
   stk.forEach((s,j)=>svg.append('g').selectAll('rect').data(s).join('rect').attr('x',d=>x(d.data.i)).attr('width',x.bandwidth()).attr('y',d=>y(Math.max(d[0],d[1]))+.5).attr('height',d=>Math.max(0,Math.abs(y(d[0])-y(d[1]))-1)).attr('fill',o.keys[j].color));
   if(o.line){const lp=d3.range(a,b+1).filter(i=>o.line.vals[i]!=null).map(i=>[xc(i),y(o.line.vals[i])]);
@@ -324,7 +332,7 @@ IE.rankBars=function(el,o){
   const W=el.clientWidth||500,rh=o.rh||27,CW=8.6,lw=o.lw||Math.min(220,W*(W<520?.5:.38),d3.max(items,d=>d.name.length)*CW+16),vwOf=a=>a.length?Math.min(130,d3.max(a,d=>IE.fmt(d.v,o.kind).length)*8.8+10):0,vwN=vwOf(items.filter(d=>d.v<0)),vw=Math.max(vwOf(items.filter(d=>d.v>=0)),vwN?0:24);
   const Ht=items.length*rh+8,ext=[Math.min(0,d3.min(items,d=>Math.min(d.v,d.ref==null?d.v:d.ref))),Math.max(0,d3.max(items,d=>Math.max(d.v,d.ref==null?d.v:d.ref)))];
   const neg=ext[0]<0,x=d3.scaleLinear().domain(ext).range([lw+(neg?vwN:0),W-vw]);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Ranked bars');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Ranked bars');watermark(svg,o,false);
   svg.append('line').attr('x1',x(0)).attr('x2',x(0)).attr('y1',0).attr('y2',Ht).attr('stroke','#666');
   items.forEach((d,i)=>{const yy=i*rh+4,g=svg.append('g').style('cursor',o.onClick?'pointer':null);
     g.append('rect').attr('x',0).attr('y',yy-2).attr('width',W).attr('height',rh).attr('fill','transparent');
@@ -347,7 +355,7 @@ IE.dumbbell=function(el,o){
   const F=o.fmt||(v=>IE.fmt(v,o.kind||'pct')),G=o.gapFmt||(v=>(v>0?'+':v<0?'−':'')+Math.abs(v).toFixed(1)+' pp');
   const W=el.clientWidth||600,narrow=W<560,lw=narrow?0:Math.min(250,W*.3),gw=narrow?0:110,rh=narrow?92:70,top=8,axh=34,Ht=top+rows.length*rh+axh;
   const mx=o.max||d3.max(rows,r=>Math.max(r.a,r.b))*1.08,x=d3.scaleLinear().domain([0,mx]);if(!o.max)x.nice(4);x.range([lw+(narrow?48:70),W-gw-(narrow?48:62)]);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Dumbbell chart');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Dumbbell chart');watermark(svg,o,false);
   const g=svg.append('g').attr('class','gridl');x.ticks(4).forEach(t=>g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',top).attr('y2',Ht-axh+4));
   const ax=svg.append('g').attr('class','axis');x.ticks(4).forEach(t=>ax.append('text').attr('x',x(t)).attr('y',Ht-axh+26).attr('text-anchor','middle').text(IE.tickFmt(o.kind||'pct',mx,25)(t)));
   if(!narrow)svg.append('text').attr('x',W-4).attr('y',top+14).attr('text-anchor','end').attr('font-size',13).style('fill','rgba(255,255,255,.72)').text(o.gapName||'Difference');
@@ -400,7 +408,7 @@ IE.scatterChart=function(el,o){
   const fx=IE.tickFmt(o.xkind,Math.max(Math.abs(x.domain()[0]),Math.abs(x.domain()[1]))),fy=IE.tickFmt(o.ykind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])));
   const yt=y.ticks(6);m.l=Math.max(56,d3.max(yt,t=>fy(t).length)*8.6+12);x.range([m.l,W-m.r]);
   const r=d3.scaleSqrt().domain([0,d3.max(pts,p=>p.size||0)||1]).range([5,W>640?30:20]);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Scatter chart');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Scatter chart');watermark(svg,o,false);
   const gg=svg.append('g').attr('class','gridl'),ax=svg.append('g').attr('class','axis');
   yt.forEach(t=>{gg.append('line').attr('x1',m.l).attr('x2',W-m.r).attr('y1',y(t)).attr('y2',y(t));ax.append('text').attr('x',m.l-8).attr('y',y(t)+5).attr('text-anchor','end').text(fy(t));});
   x.ticks(W>640?7:4).forEach(t=>{gg.append('line').attr('y1',m.t).attr('y2',Ht-m.b).attr('x1',x(t)).attr('x2',x(t));ax.append('text').attr('x',x(t)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(fx(t));});
@@ -430,7 +438,7 @@ IE.mapChart=function(el,o){
   csvOf(el,['State',o.title?o.title+(o.unit?' ('+o.unit+')':''):null],Object.keys(o.values||{}).filter(k=>o.values[k]!=null&&isFinite(o.values[k])).sort().map(k=>[k,cnum(o.values[k])]));
   el.textContent='';const FEAT=topojson.feature(window.GEO,window.GEO.objects.states).features;
   const W=el.clientWidth||520,Ht=Math.min(680,W*1.08),proj=d3.geoMercator().fitExtent([[4,4],[W-4,Ht-4]],{type:'FeatureCollection',features:FEAT}),path=d3.geoPath(proj);
-  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Map of India by state');
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Map of India by state');watermark(svg,o,true);
   const look=f=>o.lookup?o.lookup(f.properties.n):f.properties.n;
   svg.selectAll('path').data(FEAT).join('path').attr('d',path).attr('fill',f=>{const v=o.values[look(f)];return v==null||!o.cl?'#161616':o.cl.f(v);}).attr('stroke','#000').attr('stroke-width',.8)
     .style('cursor',f=>o.onClick&&o.values[look(f)]!=null?'pointer':null)
