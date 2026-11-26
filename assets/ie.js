@@ -385,6 +385,40 @@ IE.dumbbell=function(el,o){
     row.on('mousemove',ev=>IE.tip.show('<div class="t">'+esc(r.name)+(r.sub?' ('+esc(r.sub)+')':'')+'</div><div class="r"><span>'+IE.sw(o.A.color)+esc(o.A.name)+'</span><b>'+F(r.a)+'</b></div><div class="r"><span>'+IE.sw(o.B.color)+esc(o.B.name)+'</span><b>'+F(r.b)+'</b></div>'+(r.noGap?'':'<div class="r"><span>'+esc(o.gapName||'Difference')+'</span><b>'+G(gp)+'</b></div>')+(r.extra||'')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev)).on('mouseleave',IE.tip.hide);});
 };
 
+/* ---------- dots: one value per row on a shared axis, with an optional range bar and vertical reference lines (e.g. forecasts against the last actual).
+   o: {rows:[{name, sub, v, lo, hi, color, hl, extra}], refs:[{v,label}], min, max, fmt(v), kind, unit, vname, label} ---------- */
+IE.dots=function(el,o){
+  const rows=o.rows.filter(r=>r.v!=null&&isFinite(r.v)),F=o.fmt||(v=>IE.fmt(v,o.kind||'pct')),refs=o.refs||[];
+  csvOf(el,['Name','Detail',(o.vname||'Value')+(o.unit?' ('+o.unit+')':''),'Range low','Range high'],rows.map(r=>[r.name,r.sub||'',cnum(r.v),cnum(r.lo),cnum(r.hi)]));
+  el.textContent='';if(!rows.length)return empty(el,o.empty);
+  const W=el.clientWidth||600,narrow=W<560,lw=narrow?0:Math.min(260,W*.32),top=narrow?44:40,axh=34;
+  const wrap=(t,px,fs)=>{if(!t)return [];const n=Math.max(8,Math.floor(px/(fs*.53))),out=[];let cur='';t.split(' ').forEach(w=>{if(cur&&(cur+' '+w).length>n){out.push(cur);cur=w;}else cur=cur?cur+' '+w:w;});if(cur)out.push(cur);return out;};
+  const L=rows.map(r=>{const sub=wrap(r.sub,narrow?W-4:lw-8,14);return {sub,rh:narrow?70+sub.length*18+(r.hi!=null?22:0):Math.max(62,40+sub.length*18)};});
+  const ys=[];let acc=top;L.forEach(l=>{ys.push(acc);acc+=l.rh;});const Ht=acc+axh;
+  const vals=rows.flatMap(r=>[r.v,r.lo,r.hi]).concat(refs.map(r=>r.v)).filter(v=>v!=null);
+  const x=d3.scaleLinear().domain([o.min!=null?o.min:d3.min(vals),o.max!=null?o.max:d3.max(vals)]).range([lw+(narrow?16:24),W-(narrow?56:70)]);
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',Ht).attr('role','img').attr('aria-label',o.label||'Dot chart');watermark(svg,o,false);
+  svg.append('style').text('.dots-t{paint-order:stroke;stroke:#111;stroke-width:5px;stroke-linejoin:round}');
+  const tk=x.ticks(narrow?4:6),g=svg.append('g').attr('class','gridl');tk.forEach(t=>g.append('line').attr('x1',x(t)).attr('x2',x(t)).attr('y1',top-6).attr('y2',Ht-axh+4));
+  const ax=svg.append('g').attr('class','axis');tk.forEach(t=>ax.append('text').attr('x',x(t)).attr('y',Ht-axh+26).attr('text-anchor','middle').text(F(t)));
+  /* reference lines run the full height, labelled at the top; the label sits on whichever side has room */
+  refs.forEach(r=>{const xr=x(r.v),lab=r.label+' '+F(r.v),right=xr+10+lab.length*(narrow?7.6:8.2)<W;svg.append('line').attr('x1',xr).attr('x2',xr).attr('y1',top-14).attr('y2',Ht-axh+4).attr('stroke','#fff').attr('stroke-width',2).attr('stroke-dasharray','6 5');
+    svg.append('text').attr('x',right?xr+6:xr-6).attr('y',top-20).attr('text-anchor',right?'start':'end').attr('font-size',narrow?14:15).attr('font-weight',600).text(lab);});
+  rows.forEach((r,i)=>{const y0=ys[i],rh=L[i].rh,sub=L[i].sub,row=svg.append('g'),dim='rgba(255,255,255,.72)';
+    const cy=narrow?y0+rh-22:y0+rh/2;
+    row.append('rect').attr('x',0).attr('y',y0).attr('width',W).attr('height',rh).attr('fill','transparent');
+    if(narrow){row.append('text').attr('class','dots-t').attr('x',0).attr('y',y0+20).attr('font-size',17).attr('font-weight',r.hl?700:600).text(r.name);
+      sub.forEach((t,k)=>row.append('text').attr('class','dots-t').attr('x',0).attr('y',y0+40+k*18).attr('font-size',14).style('fill',dim).text(t));}
+    else{const ny=sub.length?cy-sub.length*9+2:cy+6;row.append('text').attr('x',lw-4).attr('y',ny).attr('text-anchor','end').attr('font-size',18).attr('font-weight',r.hl?700:600).text(r.name);
+      sub.forEach((t,k)=>row.append('text').attr('x',lw-4).attr('y',ny+20+k*18).attr('text-anchor','end').attr('font-size',14).style('fill',dim).text(t));}
+    if(r.lo!=null&&r.hi!=null)row.append('line').attr('x1',x(r.lo)).attr('x2',x(r.hi)).attr('y1',cy).attr('y2',cy).attr('stroke','#8a8a8a').attr('stroke-width',5).attr('stroke-linecap','round');
+    const rr=narrow?9:11;row.append('circle').attr('cx',x(r.v)).attr('cy',cy).attr('r',rr).attr('fill',r.color||IE.PAL[0]).attr('stroke','#0e0e0e').attr('stroke-width',2.5);
+    /* a row with a range gets its value above the dot, so it is not read as the end of the range */
+    if(r.hi!=null)row.append('text').attr('x',x(r.v)).attr('y',cy-rr-7).attr('text-anchor','middle').attr('font-size',narrow?16:18).attr('font-weight',600).attr('class','dots-t').text(F(r.v));
+    else row.append('text').attr('x',x(r.v)+rr+8).attr('y',cy+6).attr('font-size',narrow?16:18).attr('font-weight',600).text(F(r.v));
+    row.on('mousemove',ev=>IE.tip.show('<div class="t">'+esc(r.name)+'</div><div class="r"><span>'+esc(o.vname||'Value')+'</span><b>'+F(r.v)+'</b></div>'+(r.lo!=null?'<div class="r"><span>Range</span><b>'+F(r.lo)+' to '+F(r.hi)+'</b></div>':'')+(r.sub?'<div class="m">'+esc(r.sub)+'</div>':'')+(r.extra||'')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev)).on('mouseleave',IE.tip.hide);});
+};
+
 /* ---------- sparkline ---------- */
 IE.spark=function(vals){const pts=vals.map((v,i)=>[i,v]).filter(p=>p[1]!=null);if(pts.length<2)return '';const W=180,Ht=38,x=d3.scaleLinear().domain([0,vals.length-1]).range([3,W-5]),e=d3.extent(pts,p=>p[1]),y=d3.scaleLinear().domain(e[0]===e[1]?[e[0]-1,e[1]+1]:e).range([Ht-4,4]);
   const l=d3.line().x(p=>x(p[0])).y(p=>y(p[1]))(pts),z=pts[pts.length-1];const zero=e[0]<0&&e[1]>0?'<line x1="3" x2="'+(W-5)+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="#555"/>':'';

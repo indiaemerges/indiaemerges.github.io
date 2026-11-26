@@ -59,6 +59,7 @@ All time charts take `labels` (one per period), points as `[index, value]`, `kin
 | `IE.mapChart(el, {values, cl, kind, lookup, tipHtml, onClick, labels, labelFmt})` | India by state, colour classes from `IE.classer`, with each state's value written on it (`IE.fmtShort`). A label sits where it fits inside the state; small states get a callout into the sea or beyond the border; labels that would collide are left off and stay in the tooltip. Use it wherever a dataset has state figures, beside a ranking (`IE.rankBars`) so every value is readable. |
 | `IE.classer(values, div)` | Map colour classes: sequential quantiles, or diverging around zero (`{pool}` fixes the bands across years). `IE.scaleLegend` draws its key. |
 | `IE.dumbbell(el, {rows, A, B, fmt, gapName})` | Two values per row joined by a line (A a ring, B a filled dot) with the difference at the right; on phones the difference moves onto the name line. For before-and-after or survey-vs-survey comparisons. |
+| `IE.dots(el, {rows, refs, min, max, fmt})` | One value per row as a dot on a shared axis, with an optional range bar (`lo`, `hi`) and dashed reference lines (`refs: [{v, label}]`). For forecasts against an actual. Chart of the day type `dots`. |
 | `IE.spark(vals)` | Small trend line for tiles. |
 
 **Watermark on every chart.** Every chart draws a faint `indiaemerges.com` behind its data (maps: small, in the empty top-right corner), so screenshots carry the source. Pass `watermark: false` in a chart's options to leave it off.

@@ -15,6 +15,7 @@ async function build(box){
   if(spec.type==='line')return line(box,spec,rows);
   if(spec.type==='dumbbell')return dumb(box,spec,rows);
   if(spec.type==='map')return map(box,spec,rows);
+  if(spec.type==='dots')return dots(box,spec,rows);
   const L=rows.map(r=>r[spec.x]),col=c=>rows.map(r=>r[c]===''||r[c]==null?null:+r[c]);
   const st={m:0,view:'total',a:0,b:L.length-1};
   const ui=box.querySelector('.cod-ui'),plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend');
@@ -85,6 +86,17 @@ function dumb(box,spec,rows){
   const A={name:spec.a[1],color:spec.a[2]},B={name:spec.b[1],color:spec.b[2]};
   lg.innerHTML='<span><i class="sw" style="background:none;border:3px solid '+A.color+';border-radius:50%"></i>'+IE.esc(A.name)+'</span><span><i class="sw" style="background:'+B.color+';border-radius:50%"></i>'+IE.esc(B.name)+'</span>';
   function draw(){IE.dumbbell(plot,{rows:R,A,B,fmt,gapName:spec.gapName,unit:spec.unit,max:spec.max,label:spec.title||'Chart'});}
+  draw();box.classList.add('ready');
+  let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
+}
+/* Dots on one axis: spec {type:'dots', data, name, sub, value, lo, hi, hl:[column,value], colors:[[column,value,color]], refs:[{v,label}], min, max, dec, vname, unit, legend:[[name,color,'dot'|'line'|'range']], note} */
+function dots(box,spec,rows){
+  const plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend'),num=v=>v===''||v==null?null:+v;
+  const fmt=v=>v==null?'n/a':v.toFixed(spec.dec!=null?spec.dec:Number.isInteger(Math.round(v*100)/10)?1:2)+'%';/* one decimal unless the value has two, e.g. 7.35 */
+  const colorOf=r=>{const c=(spec.colors||[]).find(c=>r[c[0]]===c[1]);return c?c[2]:'#6FD3EA';};
+  const R=rows.map(r=>({name:r[spec.name],sub:spec.sub?r[spec.sub]:'',v:num(r[spec.value]),lo:spec.lo?num(r[spec.lo]):null,hi:spec.hi?num(r[spec.hi]):null,color:colorOf(r),hl:spec.hl?r[spec.hl[0]]===spec.hl[1]:false,extra:spec.note&&r[spec.note]?'<div class="m">'+IE.esc(r[spec.note])+'</div>':''}));
+  lg.innerHTML=(spec.legend||[]).map(l=>'<span><i class="sw'+(l[2]==='line'?' ln':'')+'" style="'+(l[2]==='dot'?'background:'+l[1]+';border-radius:50%':l[2]==='line'?'background:repeating-linear-gradient(90deg,'+l[1]+' 0 5px,transparent 5px 9px)':'background:'+l[1]+';height:5px;border-radius:3px')+'"></i>'+IE.esc(l[0])+'</span>').join('');
+  function draw(){IE.dots(plot,{rows:R,refs:spec.refs,min:spec.min,max:spec.max,fmt,vname:spec.vname,unit:spec.unit,label:spec.title||'Chart'});}
   draw();box.classList.add('ready');
   let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
 }
