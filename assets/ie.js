@@ -415,7 +415,7 @@ IE.dots=function(el,o){
     const rr=narrow?9:11;row.append('circle').attr('cx',x(r.v)).attr('cy',cy).attr('r',rr).attr('fill',r.color||IE.PAL[0]).attr('stroke','#0e0e0e').attr('stroke-width',2.5);
     /* a row with a range gets its value above the dot, so it is not read as the end of the range */
     if(r.hi!=null)row.append('text').attr('x',x(r.v)).attr('y',cy-rr-7).attr('text-anchor','middle').attr('font-size',narrow?16:18).attr('font-weight',600).attr('class','dots-t').text(F(r.v));
-    else row.append('text').attr('x',x(r.v)+rr+8).attr('y',cy+6).attr('font-size',narrow?16:18).attr('font-weight',600).text(F(r.v));
+    else row.append('text').attr('x',x(r.v)+rr+8).attr('y',cy+6).attr('font-size',narrow?16:18).attr('font-weight',600).attr('class','dots-t').text(F(r.v));
     row.on('mousemove',ev=>IE.tip.show('<div class="t">'+esc(r.name)+'</div><div class="r"><span>'+esc(o.vname||'Value')+'</span><b>'+F(r.v)+'</b></div>'+(r.lo!=null?'<div class="r"><span>Range</span><b>'+F(r.lo)+' to '+F(r.hi)+'</b></div>':'')+(r.sub?'<div class="m">'+esc(r.sub)+'</div>':'')+(r.extra||'')+(o.unit?'<div class="m">'+esc(o.unit)+'</div>':''),ev)).on('mouseleave',IE.tip.hide);});
 };
 
