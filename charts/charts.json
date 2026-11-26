@@ -4,9 +4,9 @@
   "file": "2026-11-26-gdp-forecasts.png",
   "title": "Will growth hold at 7.8%? Forecasts for Monday's GDP number",
   "subtitle": "Forecasts of India's real GDP growth for July to September 2026, % year on year. The dashed line is growth in April to June. Official figures are due on 30 November.",
-  "caption": "All six forecasts are at or below April to June's 7.8%, though some economists in the Reuters poll expect as much as 8.2%. SBI Research is the most optimistic at 7.8%. The RBI's Monetary Policy Committee is the most cautious official forecaster at 7.2%, though it has already raised its forecast from 6.4% in August. The Reuters poll median is 7.6%, with individual forecasts from 6.6% to 8.2%. We will add the official figure on Monday.",
-  "alt": "Dot chart of forecasts for India's GDP growth in July to September 2026. SBI Research 7.8%. Reuters poll median 7.6%, range 6.6% to 8.2%. ICRA 7.5%. Finance Ministry 7.35%. RBI 7.2%. Brickwork Ratings 7.0%. Growth in April to June was 7.8%.",
-  "source": "RBI Monetary Policy Statement, 7 October 2026; Ministry of Finance, Monthly Economic Review, October 2026; ICRA, 17 November 2026; SBI Research Ecowrap, 11 November 2026; Reuters poll, 13 to 18 November 2026, as reported; Brickwork Ratings, as reported by Business Today, 13 November 2026",
+  "caption": "All five forecasts are at or below April to June's 7.8%, though some economists in the Reuters poll expect as much as 8.2%. SBI Research is the most optimistic at 7.8%. The RBI's Monetary Policy Committee expects 7.2%, already up from the 6.4% it forecast in August. The Reuters poll median is 7.6%, with individual forecasts from 6.6% to 8.2%. We will add the official figure on Monday.",
+  "alt": "Dot chart of forecasts for India's GDP growth in July to September 2026. SBI Research 7.8%. Reuters poll median 7.6%, range 6.6% to 8.2%. ICRA 7.5%. RBI 7.2%. Brickwork Ratings 7.0%. Growth in April to June was 7.8%.",
+  "source": "RBI Monetary Policy Statement, 7 October 2026; ICRA, 17 November 2026; SBI Research Ecowrap, 11 November 2026; Reuters poll, 13 to 18 November 2026, as reported; Brickwork Ratings, as reported by Business Today, 13 November 2026",
   "interactive": {
    "type": "dots",
    "data": "data/2026-11-26-gdp-forecasts.csv",
