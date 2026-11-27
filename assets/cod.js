@@ -73,8 +73,10 @@ function line(box,spec,rows){
     return {name:s[1],color:s[2],endValue:!!s[3],bold:k===0,pts,last:last?last[1]:null,short:(s[4]||s[1])+(last?' '+IE.fmt(last[1],K):'')};});
   lg.innerHTML=S.map(s=>'<span>'+IE.sw(s.color,1)+IE.esc(s.name)+(s.last!=null?' <b>'+IE.fmt(s.last,K)+'</b>':'')+'</span>').join('')+((spec.hlines||[]).length&&spec.hlines_name?'<span><i class="sw ln" style="background:repeating-linear-gradient(90deg,#9a9a9a 0 5px,transparent 5px 9px)"></i>'+IE.esc(spec.hlines_name)+'</span>':'');
   const mN=i=>+M[i].slice(0,4)*12+(+M[i].slice(5,7)-1);
-  function draw(){IE.lineChart(plot,{labels:M.map(m=>n>30?m.slice(0,4):MON[+m.slice(5,7)-1]),series:S,kind:K,unit:spec.unit,hlines:spec.hlines,endLabels:spec.endLabels!==false,label:spec.title||'Chart',
-    align:mN,minStep:n>30?12:1,tickLabel:i=>n>30?M[i].slice(0,4):MON[+M[i].slice(5,7)-1],tipTitle:i=>MON[+M[i].slice(5,7)-1]+' '+M[i].slice(0,4),height:window.innerWidth<640?340:440});}
+  /* optional label columns (spec.tick, spec.tip) replace month names, e.g. for quarters */
+  const TK=spec.tick?rows.map(r=>r[spec.tick]):null,TP=spec.tip?rows.map(r=>r[spec.tip]):null;
+  function draw(){IE.lineChart(plot,{labels:TK||M.map(m=>n>30?m.slice(0,4):MON[+m.slice(5,7)-1]),series:S,kind:K,unit:spec.unit,hlines:spec.hlines,zero:spec.zero,endLabels:spec.endLabels!==false,label:spec.title||'Chart',
+    align:TK?(i=>i):mN,minStep:TK?1:n>30?12:1,tickLabel:i=>TK?TK[i]:n>30?M[i].slice(0,4):MON[+M[i].slice(5,7)-1],tipTitle:i=>TP?TP[i]:MON[+M[i].slice(5,7)-1]+' '+M[i].slice(0,4),height:window.innerWidth<640?340:440});}
   draw();box.classList.add('ready');
   let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
 }
