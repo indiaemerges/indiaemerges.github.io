@@ -1,14 +1,14 @@
-quarter,label,period,gdp_growth_pct,gva_growth_pct
-2023-06,Q1 FY24,April to June 2023,6.6,6.9
-2023-09,Q2 FY24,July to September 2023,7.5,7.9
-2023-12,Q3 FY24,October to December 2023,7.7,7.4
-2024-03,Q4 FY24,January to March 2024,7.4,7.5
-2024-06,Q1 FY25,April to June 2024,7.5,7.5
-2024-09,Q2 FY25,July to September 2024,7.3,7.0
-2024-12,Q3 FY25,October to December 2024,7.4,7.6
-2025-03,Q4 FY25,January to March 2025,6.6,6.6
-2025-06,Q1 FY26,April to June 2025,6.9,7.0
-2025-09,Q2 FY26,July to September 2025,8.1,8.3
-2025-12,Q3 FY26,October to December 2025,7.7,7.6
-2026-03,Q4 FY26,January to March 2026,8.6,8.7
-2026-06,Q1 FY27,April to June 2026,7.8,8.2
+quarter,financial_year,period,gdp_growth_pct,gva_growth_pct,gdp_minus_gva_pp
+Q1,2023-24,April to June 2023,6.6,6.9,-0.3
+Q2,2023-24,July to September 2023,7.5,7.9,-0.4
+Q3,2023-24,October to December 2023,7.7,7.4,0.3
+Q4,2023-24,January to March 2024,7.4,7.5,-0.1
+Q1,2024-25,April to June 2024,7.5,7.5,0.0
+Q2,2024-25,July to September 2024,7.3,7.0,0.3
+Q3,2024-25,October to December 2024,7.4,7.6,-0.2
+Q4,2024-25,January to March 2025,6.6,6.6,0.0
+Q1,2025-26,April to June 2025,6.9,7.0,-0.1
+Q2,2025-26,July to September 2025,8.1,8.3,-0.2
+Q3,2025-26,October to December 2025,7.7,7.6,0.1
+Q4,2025-26,January to March 2026,8.6,8.7,-0.1
+Q1,2026-27,April to June 2026,7.8,8.2,-0.4

@@ -16,6 +16,7 @@ async function build(box){
   if(spec.type==='dumbbell')return dumb(box,spec,rows);
   if(spec.type==='map')return map(box,spec,rows);
   if(spec.type==='dots')return dots(box,spec,rows);
+  if(spec.type==='bars')return bars(box,spec,rows);
   const L=rows.map(r=>r[spec.x]),col=c=>rows.map(r=>r[c]===''||r[c]==null?null:+r[c]);
   const st={m:0,view:'total',a:0,b:L.length-1};
   const ui=box.querySelector('.cod-ui'),plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend');
@@ -88,6 +89,17 @@ function dumb(box,spec,rows){
   const A={name:spec.a[1],color:spec.a[2]},B={name:spec.b[1],color:spec.b[2]};
   lg.innerHTML='<span><i class="sw" style="background:none;border:3px solid '+A.color+';border-radius:50%"></i>'+IE.esc(A.name)+'</span><span><i class="sw" style="background:'+B.color+';border-radius:50%"></i>'+IE.esc(B.name)+'</span>';
   function draw(){IE.dumbbell(plot,{rows:R,A,B,fmt,gapName:spec.gapName,unit:spec.unit,max:spec.max,label:spec.title||'Chart'});}
+  draw();box.classList.add('ready');
+  let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
+}
+/* Grouped bars: spec {type:'bars', data, x (bar label column), tip (tooltip title column), group (second axis line column, e.g. financial year),
+   series:[[column,name,color]], kind, unit} */
+function bars(box,spec,rows){
+  const plot=box.querySelector('.cod-plot'),lg=box.querySelector('.cod-legend'),num=v=>v===''||v==null?null:+v;
+  const S=spec.series.map(s=>({name:s[1],color:s[2],pts:rows.map((r,i)=>[i,num(r[s[0]])])}));
+  lg.innerHTML=S.map(s=>'<span>'+IE.sw(s.color)+IE.esc(s.name)+'</span>').join('');
+  const L=rows.map(r=>r[spec.x]),TP=spec.tip?rows.map(r=>r[spec.tip]):L,G=spec.group?rows.map(r=>r[spec.group]):null;
+  function draw(){IE.barChart(plot,{labels:L,series:S,kind:spec.kind||'pct',unit:spec.unit,groups:G,tipTitle:i=>TP[i],label:spec.title||'Chart',height:window.innerWidth<640?360:460});}
   draw();box.classList.add('ready');
   let t,lw=window.innerWidth;window.addEventListener('resize',()=>{if(window.innerWidth===lw)return;lw=window.innerWidth;clearTimeout(t);t=setTimeout(draw,180);});
 }

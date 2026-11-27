@@ -79,3 +79,5 @@ The tooltip (`IE.tip`) hides by itself on phones when the reader scrolls, taps e
 ## Colours
 
 `IE.PAL` holds the category colours in a fixed order: cyan, yellow, pink, violet, green, white, orange, grey. Give each category the same colour every time it appears, and use white for totals and all-India lines.
+
+Chart of the day type `bars`: grouped bars from a CSV (`series: [[column, name, color]]`), with `group` naming a column whose runs (e.g. financial years) get a second axis line and dividers. `IE.barChart` takes the same as `groups` (one label per bar).

@@ -195,7 +195,7 @@ IE.barChart=function(el,o){
   const bars=(o.series||[]).map(clean).filter(s=>s.pts.length),lines=(o.lines||[]).map(clean).filter(s=>s.pts.length);
   el.textContent='';if(!bars.length&&!lines.length)return empty(el,o.empty);
   const all=bars.concat(lines).flatMap(s=>s.pts),a=d3.min(all,p=>p[0]),b=d3.max(all,p=>p[0]);
-  const W=el.clientWidth||600,Ht=o.height||(W>640?400:320),m={t:bandTop(o),r:10,b:34,l:50};
+  const W=el.clientWidth||600,Ht=o.height||(W>640?400:320),m={t:bandTop(o),r:10,b:o.groups?58:34,l:50};
   const y=d3.scaleLinear().domain([Math.min(0,d3.min(all,p=>p[1])),Math.max(0,d3.max(all,p=>p[1]))]).nice(6).range([Ht-m.b,m.t]);
   const ticks=y.ticks(6),tf=IE.tickFmt(o.kind,Math.max(Math.abs(y.domain()[0]),Math.abs(y.domain()[1])),ticks.length>1?ticks[1]-ticks[0]:null);m.l=Math.max(44,d3.max(ticks,t=>tf(t).length)*8.6+10);
   const x=d3.scaleBand().domain(d3.range(a,b+1)).range([m.l,W-m.r]).paddingInner(bars.length>1?.22:.18),xc=i=>x(i)+x.bandwidth()/2;
@@ -212,6 +212,11 @@ IE.barChart=function(el,o){
     if(s.pts.length<=40)s.pts.forEach(p=>svg.append('circle').attr('cx',xc(p[0])).attr('cy',y(p[1])).attr('r',3.5).attr('fill',s.color).attr('stroke','#000').attr('stroke-width',1.5));});
   const xa=svg.append('g').attr('class','axis');IE.xTicks(L,a,b,W-m.l-m.r,o.align,o.minStep,o.steps).forEach(i=>xa.append('text').attr('x',xc(i)).attr('y',Ht-m.b+22).attr('text-anchor','middle').text(o.tickLabel?o.tickLabel(i):L[i]));
   edgeFix(xa,W);
+  /* o.groups: one label per bar (e.g. the financial year of each quarter); runs of the same label get a second axis line and faint dividers */
+  if(o.groups){const runs=[];d3.range(a,b+1).forEach(i=>{const g=o.groups[i];if(runs.length&&runs[runs.length-1].g===g)runs[runs.length-1].to=i;else runs.push({g,from:i,to:i});});
+    runs.forEach((r,k)=>{const x0=x(r.from)-x.step()*x.paddingInner()/2,x1=x(r.to)+x.bandwidth()+x.step()*x.paddingInner()/2,cx=(Math.max(m.l,x0)+Math.min(W-m.r,x1))/2;
+      if(k)svg.append('line').attr('x1',x0).attr('x2',x0).attr('y1',m.t).attr('y2',Ht-8).attr('stroke','#fff').attr('stroke-opacity',.22);
+      const lab=W>640?r.g:/^\d{4}-\d{2}$/.test(r.g)?r.g.slice(2):r.g;/* phones: 2023-24 becomes 23-24 so a single-quarter year still fits */xa.append('text').attr('x',cx).attr('y',Ht-m.b+46).attr('text-anchor','middle').attr('font-weight',600).style('fill','#fff').text(lab);});}
   const hl=svg.insert('rect',':first-child').attr('y',m.t).attr('height',Ht-m.t-m.b).attr('width',x.step()).attr('fill','#fff').attr('opacity',.1).style('display','none');
   const ov=svg.append('rect').attr('x',m.l).attr('y',m.t).attr('width',Math.max(0,W-m.l-m.r)).attr('height',Ht-m.t-m.b).attr('fill','transparent');
   function move(ev){const pt=d3.pointer(ev.touches?ev.touches[0]:ev,svg.node());const i=Math.max(a,Math.min(b,a+Math.floor((pt[0]-m.l)/x.step())));hl.style('display',null).attr('x',x(i)-x.step()*x.paddingInner()/2);
