@@ -3,9 +3,9 @@
   "date": "2026-11-27",
   "file": "2026-11-27-gdp-gva-quarterly.png",
   "title": "India's economy has grown faster than 7% in 10 of the last 13 quarters",
-  "subtitle": "Real GDP and GVA growth by quarter of each financial year (April to March), % on the same quarter a year earlier, at 2022-23 prices, and the gap between them in percentage points. Figures for July to September 2026 are due on Monday 30 November.",
-  "caption": "GDP grew 7.8% in April to June 2026, down from 8.6% in January to March, the fastest of the 13 quarters shown. Gross value added, which leaves out taxes and subsidies on products, grew 8.2%, so GDP growth was 0.4 points lower, the joint widest gap shown. The gap is small, between −0.4 and +0.3 points, in every quarter. GDP growth dipped below 7% only three times: 6.6% in April to June 2023, 6.6% in January to March 2025 and 6.9% in April to June 2025. Forecasts for July to September range from 7.0% to 7.8%; we will add Monday's figure.",
-  "alt": "Bar chart of India's quarterly real GDP and GVA growth from April to June 2023 to April to June 2026. GDP growth: 6.6, 7.5, 7.7, 7.4, 7.5, 7.3, 7.4, 6.6, 6.9, 8.1, 7.7, 8.6 and 7.8%. GVA growth: 6.9, 7.9, 7.4, 7.5, 7.5, 7.0, 7.6, 6.6, 7.0, 8.3, 7.6, 8.7 and 8.2%. GDP minus GVA growth, in percentage points: −0.3, −0.4, 0.3, −0.1, 0.0, 0.3, −0.2, 0.0, −0.1, −0.2, 0.1, −0.1 and −0.4.",
+  "subtitle": "Real GDP and GVA growth by quarter of each financial year (April to March), % on the same quarter a year earlier, at 2022-23 prices. Figures for July to September 2026 are due on Monday 30 November.",
+  "caption": "GDP grew 7.8% in April to June 2026, down from 8.6% in January to March, the fastest of the 13 quarters shown. Gross value added, which leaves out taxes and subsidies on products, grew 8.2%. GDP growth dipped below 7% only three times: 6.6% in April to June 2023, 6.6% in January to March 2025 and 6.9% in April to June 2025. Forecasts for July to September range from 7.0% to 7.8%; we will add Monday's figure.",
+  "alt": "Bar chart of India's quarterly real GDP and GVA growth from April to June 2023 to April to June 2026. GDP growth: 6.6, 7.5, 7.7, 7.4, 7.5, 7.3, 7.4, 6.6, 6.9, 8.1, 7.7, 8.6 and 7.8%. GVA growth: 6.9, 7.9, 7.4, 7.5, 7.5, 7.0, 7.6, 6.6, 7.0, 8.3, 7.6, 8.7 and 8.2%.",
   "source": "MoSPI, National Accounts Statistics, quarterly estimates at constant 2022-23 prices (latest release, 31 August 2026)",
   "interactive": {
    "type": "bars",
@@ -24,14 +24,9 @@
      "gva_growth_pct",
      "GVA growth",
      "#F3E67C"
-    ],
-    [
-     "gdp_minus_gva_pp",
-     "GDP minus GVA growth (points)",
-     "#F590C6"
     ]
    ],
-   "unit": "Growth: % on the same quarter a year earlier, at 2022-23 prices. Gap: percentage points"
+   "unit": "% change on the same quarter a year earlier, at 2022-23 prices"
   }
  },
  {
